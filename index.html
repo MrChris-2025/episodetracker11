@@ -1,1 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic TMDB Gallery</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
+        header {
+            background-color: #282828;
+            padding: 15px;
+            text-align: center;
+            border-bottom: 2px solid #3d3d3d;
+        }
+
+        main {
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        .top-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .video-player-container {
+            flex: 3;
+            min-width: 300px;
+        }
+
+        #videoPlayer {
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            border-radius: 8px;
+            background-color: #000;
+        }
+
+        #videoDetails {
+            margin-top: 20px;
+        }
+
+        #videoTitle {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        #videoOverview {
+            font-size: 1em;
+            color: #b0b0b0;
+        }
+
+        .source-selector {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .source-selector label {
+            margin-right: 10px;
+            font-size: 1.1em;
+        }
+
+        .source-selector select {
+            background-color: #212121;
+            color: #fff;
+            border: 1px solid #3d3d3d;
+            border-radius: 5px;
+            padding: 5px;
+            font-size: 1em;
+            cursor: pointer;
+        }
+        
+        .sidebar-gallery {
+            flex: 1;
+            min-width: 250px;
+            background-color: #212121;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .sidebar-gallery h2 {
+            margin-top: 0;
+            font-size: 1.5em;
+            border-bottom: 1px solid #3d3d3d;
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+        }
+
+        .gallery-container {
+            display: flex;
+            overflow-x: auto;
+            gap: 15px;
+            padding-bottom: 10px;
+            scrollbar-width: thin;
+            scrollbar-color: #8834ec #212121;
+        }
+
+        .gallery-container::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .gallery-container::-webkit-scrollbar-track {
+            background: #212121;
+            border-radius: 10px;
+        }
+
+        .gallery-container::-webkit-scrollbar-thumb {
+            background-color: #8834ec;
+            border-radius: 10px;
+            border: 2px solid #212121;
+        }
+
+        .gallery-item {
+            display: flex;
+            flex-direction: column;
+            width: 150px;
+            flex-shrink: 0;
+            cursor: pointer;
+            transition: transform 0.2s;
+            position: relative;
+            background-color: #282828;
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        .gallery-item:hover {
+            transform: scale(1.02);
+        }
+
+        .gallery-item-trending {
+            display: flex;
+            flex-direction: column;
+            width: 150px;
+            flex-shrink: 0;
+            cursor: pointer;
+            transition: transform 0.2s;
+            background-color: #282828;
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        .gallery-item-trending:hover {
+            transform: scale(1.02);
+        }
+
+        .gallery-item-trending img {
+            width: 100%;
+            height: auto;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .gallery-item-trending .item-details {
+            text-align: center;
+        }
+
+        .gallery-item img {
+            width: 100%; /* Make image fill its container */
+            height: auto;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .item-details {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            flex-grow: 1;
+        }
+
+        .item-details h4 {
+            margin: 0;
+            font-size: 1em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .item-details p {
+            margin: 5px 0 0;
+            font-size: 0.8em;
+            color: #909090;
+        }
+
+        .progress-indicator {
+            font-size: 0.75em;
+            color: #8834ec;
+            margin-top: 5px;
+        }
+
+        #continueWatchingGallery {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        #continueWatchingGallery .gallery-item {
+            flex-direction: row;
+            width: auto;
+            background-color: #282828;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 0;
+        }
+
+        #continueWatchingGallery .gallery-item img {
+            width: 100px;
+            height: auto;
+            margin-right: 15px;
+            margin-bottom: 0;
+        }
+
+        .trailer-button {
+            background-color: #8834ec;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            margin-top: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            width: 100%;
+            text-align: center;
+            transition: background-color 0.2s;
+        }
+
+        .trailer-button:hover {
+            background-color: #a050f0;
+        }
+
+        /* Style for empty continue watching message */
+        #continueWatchingMessage {
+            font-size: 0.9em;
+            color: #b0b0b0;
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        /* Style for the close button */
+        .close-button {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background-color: rgba(0, 0, 0, 0.6);
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #continueWatchingGallery .gallery-item:hover .close-button {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .close-button:hover {
+            background-color: rgba(255, 0, 0, 0.8);
+        }
+
+        /* Adjust layout for smaller screens */
+        @media (max-width: 768px) {
+            .top-section {
+                flex-direction: column;
+            }
+
+            .video-player-container {
+                margin-right: 0;
+                margin-bottom: 20px;
+            }
+
+            .sidebar-gallery {
+                min-width: unset;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🎬 TMDB Gallery</h1>
+    </header>
+    <main>
+        <div class="top-section">
+            <section class="video-player-container">
+                <iframe id="videoPlayer" width="100%" height="auto" src="" frameborder="0" allowfullscreen sandbox="allow-same-origin allow-scripts"></iframe>
+                <div id="videoDetails">
+                    <h2 id="videoTitle"></h2>
+                    <div class="source-selector">
+                        <label for="sourceSelect">Source:</label>
+                        <select id="sourceSelect"></select>
+                    </div>
+                    <p id="videoOverview"></p>
+                </div>
+            </section>
+            <aside class="sidebar-gallery">
+                <h2 id="continueWatchingHeader">Continue Watching</h2>
+                <div style="overflow-y: scroll; height:500px;">
+                <div id="continueWatchingGallery">
+                    <p id="continueWatchingMessage">No items in continue watching. Start playing something!</p>
+                </div>
+            </aside>
+        </div>
+        
+        <section class="gallery-section">
+            <h2>Trending Now</h2>
+            <div id="gallery" class="gallery-container"></div>
+        </section>
+    </main>
+    <script src="sources.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const API_KEY = '1070730380f5fee0d87cf0382670b255';
+            const GALLERY_CONTAINER = document.getElementById('gallery');
+            const CONTINUE_WATCHING_GALLERY = document.getElementById('continueWatchingGallery');
+            const CONTINUE_WATCHING_MESSAGE = document.getElementById('continueWatchingMessage');
+            const VIDEO_PLAYER = document.getElementById('videoPlayer');
+            const VIDEO_TITLE = document.getElementById('videoTitle');
+            const VIDEO_OVERVIEW = document.getElementById('videoOverview');
+            const SOURCE_SELECT = document.getElementById('sourceSelect');
+
+            const BASE_URL = 'https://api.themoviedb.org/3';
+            const IMAGE_URL = 'https://image.tmdb.org/t/p/w500';
+
+            const BACKEND_URL = 'https://ba0bc940-571b-443f-a194-17a83ab52bfa-00-3mibswoes63kt.riker.replit.dev/'; 
+
+            function getUserId() {
+                let userId = localStorage.getItem('episode_tracker_user_id');
+                if (!userId) {
+                    userId = crypto.randomUUID();
+                    localStorage.setItem('episode_tracker_user_id', userId);
+                }
+                return userId;
+            }
+            const CURRENT_USER_ID = getUserId();
+            console.log("Current User ID:", CURRENT_USER_ID);
+
+            async function saveEpisodeProgress(tmdbId, mediaType, episodeDetails, timestamp) {
+                if (!tmdbId || !mediaType || typeof timestamp === 'undefined') {
+                    console.warn("Attempted to save progress with missing data:", { tmdbId, mediaType, episodeDetails, timestamp });
+                    return;
+                }
+                const saveUrl = `${BACKEND_URL}api/progress`; 
+                
+                try {
+                    const response = await fetch(saveUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-User-ID': CURRENT_USER_ID
+                        },
+                        body: JSON.stringify({
+                            tmdbId: tmdbId,
+                            mediaType: mediaType,
+                            episode: episodeDetails,
+                            timestamp: timestamp
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error('Failed to save progress:', response.status, errorText);
+                        return null;
+                    }
+
+                    const result = await response.json();
+                    console.log('Progress saved successfully:', result.progress);
+                    displayContinueWatching();
+                    return result.progress;
+                } catch (error) {
+                    console.error('Error sending save progress request:', error);
+                    return null;
+                }
+            }
+
+            async function getEpisodeProgress(tmdbId) {
+                const getUrl = `${BACKEND_URL}api/progress/${tmdbId}`;
+                
+                try {
+                    const response = await fetch(getUrl, {
+                        method: 'GET',
+                        headers: {
+                            'X-User-ID': CURRENT_USER_ID
+                        }
+                    });
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error('Failed to get progress:', response.status, errorText);
+                        return null;
+                    }
+
+                    const result = await response.json();
+                    if (result) {
+                        console.log('Retrieved progress for single item:', result);
+                    } else {
+                        console.log('No progress found for TMDB ID:', tmdbId);
+                    }
+                    return result;
+                } catch (error) {
+                    console.error('Error sending get progress request (single item):', error);
+                    return null;
+                }
+            }
+
+            async function getAllUserProgress() {
+                const getUrl = `${BACKEND_URL}api/all-progress`;
+                try {
+                    const response = await fetch(getUrl, {
+                        method: 'GET',
+                        headers: {
+                            'X-User-ID': CURRENT_USER_ID
+                        }
+                    });
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error('Failed to get all user progress:', response.status, errorText);
+                        return {};
+                    }
+
+                    const result = await response.json();
+                    console.log('Retrieved all user progress:', result);
+                    return result;
+                } catch (error) {
+                    console.error('Error sending get all user progress request:', error);
+                    return {};
+                }
+            }
+
+            async function deleteEpisodeProgress(tmdbId) {
+                const deleteUrl = `${BACKEND_URL}api/progress/${tmdbId}`;
+                try {
+                    const response = await fetch(deleteUrl, {
+                        method: 'DELETE',
+                        headers: {
+                            'X-User-ID': CURRENT_USER_ID
+                        }
+                    });
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error('Failed to delete progress:', response.status, errorText);
+                        return false;
+                    }
+
+                    console.log(`Progress for TMDB ID ${tmdbId} deleted successfully.`);
+                    displayContinueWatching();
+                    return true;
+                } catch (error) {
+                    console.error('Error sending delete progress request:', error);
+                    return false;
+                }
+            }
+            
+            async function displayContinueWatching() {
+                CONTINUE_WATCHING_MESSAGE.style.display = 'none';
+
+                const allProgressData = await getAllUserProgress();
+                const progressItemsArray = Object.keys(allProgressData).map(tmdbId => ({
+                    tmdbId: tmdbId,
+                    ...allProgressData[tmdbId]
+                }));
+
+                progressItemsArray.sort((a, b) => b.lastUpdated - a.lastUpdated);
+
+                if (progressItemsArray.length === 0) {
+                    CONTINUE_WATCHING_MESSAGE.style.display = 'block';
+                    CONTINUE_WATCHING_GALLERY.innerHTML = '';
+                    return;
+                }
+
+                const itemsToDisplay = progressItemsArray.slice(0, 10);
+                const currentItems = Array.from(CONTINUE_WATCHING_GALLERY.children);
+                const currentTmdbIds = new Set(currentItems.map(item => item.dataset.tmdbId));
+                const newTmdbIds = new Set(itemsToDisplay.map(item => item.tmdbId));
+
+                currentItems.forEach(item => {
+                    if (!newTmdbIds.has(item.dataset.tmdbId)) {
+                        CONTINUE_WATCHING_GALLERY.removeChild(item);
+                    }
+                });
+
+                for (const progressItem of itemsToDisplay) {
+                    const tmdbId = progressItem.tmdbId;
+                    const existingItem = document.querySelector(`#continueWatchingGallery .gallery-item[data-tmdb-id="${tmdbId}"]`);
+                    
+                    try {
+                        const type = progressItem.mediaType;
+                        const id = progressItem.tmdbId;
+                        let itemDetails = null;
+
+                        const detailResponse = await fetch(`${BASE_URL}/${type}/${id}?api_key=${API_KEY}`);
+                        if (detailResponse.ok) {
+                            itemDetails = await detailResponse.json();
+                        } else {
+                            console.warn(`Failed to fetch TMDB details for ${type} ID ${id}`);
+                            continue;
+                        }
+
+                        const title = itemDetails.title || itemDetails.name;
+                        const posterPath = itemDetails.poster_path;
+                        const minutes = Math.floor(progressItem.timestamp / 60);
+                        const seconds = progressItem.timestamp % 60;
+                        let progressText = '';
+
+                        if (type === 'movie') {
+                            progressText = `<div class="progress-indicator">Last watched: ${minutes}m ${seconds}s</div>`;
+                        } else {
+                            if (progressItem.episode && typeof progressItem.episode.season !== 'undefined' && typeof progressItem.episode.episode !== 'undefined') {
+                                progressText = `<div class="progress-indicator">S${progressItem.episode.season} E${progressItem.episode.episode} at ${minutes}m ${seconds}s</div>`;
+                            } else {
+                                progressText = `<div class="progress-indicator">Last watched: ${minutes}m ${seconds}s</div>`;
+                            }
+                        }
+
+                        if (existingItem) {
+                            const progressIndicator = existingItem.querySelector('.progress-indicator');
+                            if (progressIndicator) {
+                                progressIndicator.outerHTML = progressText;
+                            }
+                        } else {
+                            const itemElement = document.createElement('div');
+                            itemElement.classList.add('gallery-item');
+                            itemElement.dataset.tmdbId = id;
+                            itemElement.innerHTML = `
+                                <img src="${IMAGE_URL}${posterPath}" onerror="this.onerror=null;this.src='https://placehold.co/120x180/000/fff?text=No+Image';" alt="${title}">
+                                <div class="item-details">
+                                    <h4>${title}</h4>
+                                    <p>${type === 'movie' ? 'Movie' : 'TV Show'}</p>
+                                    ${progressText}
+                                </div>
+                                <button class="close-button">&times;</button>
+                            `;
+                            
+                            itemElement.addEventListener('click', (event) => {
+                                if (!event.target.classList.contains('close-button')) {
+                                    selectedItem = itemDetails;
+                                    playVideo(selectedItem);
+                                }
+                            });
+
+                            const closeButton = itemElement.querySelector('.close-button');
+                            closeButton.addEventListener('click', (event) => {
+                                event.stopPropagation();
+                                const confirmDelete = confirm('Are you sure you want to remove this from Continue Watching?'); 
+                                if (confirmDelete) {
+                                    deleteEpisodeProgress(id);
+                                }
+                            });
+                            CONTINUE_WATCHING_GALLERY.appendChild(itemElement);
+                        }
+
+                    } catch (error) {
+                        console.error('Error processing continue watching item:', progressItem, error);
+                    }
+                }
+            }
+
+            let selectedItem = null;
+            let progressSaveInterval = null;
+
+            async function fetchTrendingContent() {
+                try {
+                    const response = await fetch(`${BASE_URL}/trending/all/week?api_key=${API_KEY}`);
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    const data = await response.json();
+                    displayTrendingGallery(data.results);
+                    if (data.results.length > 0 && !selectedItem) {
+                        selectedItem = data.results[0];
+                        playVideo(selectedItem);
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch trending content:', error);
+                    GALLERY_CONTAINER.innerHTML = '<p>Failed to load content. Please try again later.</p>';
+                }
+            }
+
+            function displayTrendingGallery(contentList) {
+                GALLERY_CONTAINER.innerHTML = '';
+                contentList.forEach(item => {
+                    const isMovie = item.media_type === 'movie';
+                    const title = item.title || item.name;
+                    const itemElement = document.createElement('div');
+                    itemElement.classList.add('gallery-item-trending');
+                    itemElement.innerHTML = `
+                        <img src="${IMAGE_URL}${item.poster_path}" onerror="this.onerror=null;this.src='https://placehold.co/120x180/000/fff?text=No+Image';" alt="${title}">
+                        <div class="item-details">
+                            <h4>${title}</h4>
+                            <p>${isMovie ? 'Movie' : 'TV Show'}</p>
+                            <button class="trailer-button" data-id="${item.id}" data-type="${item.media_type}">Watch Trailer</button>
+                        </div>
+                    `;
+                    itemElement.addEventListener('click', (event) => {
+                        if (!event.target.classList.contains('trailer-button')) {
+                            selectedItem = item;
+                            playVideo(selectedItem);
+                        }
+                    });
+                    GALLERY_CONTAINER.appendChild(itemElement);
+                });
+            }
+
+            async function fetchTrailer(mediaType, tmdbId) {
+                try {
+                    const response = await fetch(`${BASE_URL}/${mediaType}/${tmdbId}/videos?api_key=${API_KEY}`);
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    const data = await response.json();
+                    const trailer = data.results.find(video => video.site === 'YouTube' && video.type === 'Trailer');
+                    return trailer ? `https://www.youtube.com/embed/${trailer.key}` : null;
+                } catch (error) {
+                    console.error('Failed to fetch trailer:', error);
+                    return null;
+                }
+            }
+
+            async function playTrailer(event) {
+                event.stopPropagation();
+                const button = event.target;
+                const mediaId = button.dataset.id;
+                const mediaType = button.dataset.type;
+
+                const trailerUrl = await fetchTrailer(mediaType, mediaId);
+
+                if (trailerUrl) {
+                    if (progressSaveInterval) {
+                        clearInterval(progressSaveInterval);
+                        progressSaveInterval = null;
+                    }
+                    VIDEO_PLAYER.src = trailerUrl;
+                    VIDEO_TITLE.textContent = `${button.closest('.gallery-item-trending').querySelector('h4').textContent} Trailer`;
+                    VIDEO_OVERVIEW.textContent = '';
+                    SOURCE_SELECT.style.display = 'none';
+                } else {
+                    alert("Sorry, no trailer was found for this content.");
+                }
+            }
+
+            function populateSourceSelector() {
+                SOURCE_SELECT.innerHTML = '';
+                availableSources.forEach(source => {
+                    const option = document.createElement('option');
+                    option.value = source.id;
+                    option.textContent = source.name;
+                    SOURCE_SELECT.appendChild(option);
+                });
+                SOURCE_SELECT.value = 'videasy';
+            }
+
+            async function playVideo(item) {
+                if (progressSaveInterval) {
+                    clearInterval(progressSaveInterval);
+                }
+
+                const sourceId = SOURCE_SELECT.value;
+                const source = availableSources.find(s => s.id === sourceId);
+                if (!source) return;
+
+                const type = item.media_type;
+                const id = item.id;
+                VIDEO_TITLE.textContent = item.title || item.name;
+                VIDEO_OVERVIEW.textContent = item.overview;
+                SOURCE_SELECT.style.display = 'flex';
+
+                let url = '';
+                let episodeDetails = null;
+
+                if (type === 'movie' && source.urls.movie) {
+                    url = source.urls.movie.replace('{id}', id);
+                } else if (type === 'tv' && source.urls.tv) {
+                    try {
+                        const response = await fetch(`${BASE_URL}/tv/${id}?api_key=${API_KEY}`);
+                        const tvData = await response.json();
+                        const season = tvData.last_episode_to_air?.season_number || 1;
+                        const episode = tvData.last_episode_to_air?.episode_number || 1;
+                        url = source.urls.tv.replace('{id}', id).replace('{season}', season).replace('{episode}', episode);
+                        episodeDetails = { season: season, episode: episode };
+                    } catch (error) {
+                        console.error('Failed to fetch TV show details:', error);
+                        url = source.urls.tv.replace('{id}', id).replace('{season}', 1).replace('{episode}', 1);
+                        episodeDetails = { season: 1, episode: 1 };
+                    }
+                }
+
+                VIDEO_PLAYER.src = url;
+
+                const savedProgress = await getEpisodeProgress(id);
+                if (savedProgress && savedProgress.timestamp > 0) {
+                    console.log(`Loaded progress for ${item.title || item.name}: ${savedProgress.timestamp} seconds.`);
+                }
+
+                progressSaveInterval = setInterval(() => {
+                    const dummyTimestamp = (Math.floor(Date.now() / 1000) % 3600);
+                    saveEpisodeProgress(id, type, episodeDetails, dummyTimestamp);
+                }, 10000);
+
+                VIDEO_PLAYER.onload = () => {};
+            }
+
+            SOURCE_SELECT.addEventListener('change', () => {
+                if (selectedItem) {
+                    playVideo(selectedItem);
+                }
+            });
+
+            GALLERY_CONTAINER.addEventListener('click', (event) => {
+                if (event.target.classList.contains('trailer-button')) {
+                    playTrailer(event);
+                }
+            });
+
+            window.addEventListener('beforeunload', () => {
+                if (progressSaveInterval) {
+                    clearInterval(progressSaveInterval);
+                }
+            });
+
+            async function loadAllContent() {
+                populateSourceSelector();
+                await displayContinueWatching();
+                fetchTrendingContent();
+            }
+
+            loadAllContent();
+        });
+    </script>
+</body>
+</html>
