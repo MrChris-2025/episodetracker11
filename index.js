@@ -71,10 +71,16 @@ async function saveProgress(progressData) {
  * cross-origin requests (like POST or requests with custom headers).
  */
 app.use((req, res, next) => {
-    // 'Access-Control-Allow-Origin: *' allows requests from any domain.
-    // For a production application, you should replace '*' with your specific frontend domain(s)
-    // (e.g., 'https://your-frontend-domain.com') for better security.
-    res.header('Access-Control-Allow-Origin', '*');
+    // Allow requests from your Netlify domain and localhost for development
+    const allowedOrigins = [
+        'https://your-netlify-app-name.netlify.app', // Replace with your actual Netlify URL
+        'http://localhost:3000', // For local development
+        'http://127.0.0.1:3000'
+    ];
+    const origin = req.headers.origin;
+    if (allowedOrigins.includes(origin)) {
+        res.header('Access-Control-Allow-Origin', origin);
+    }
     // Specifies which HTTP methods are allowed for cross-origin requests.
     res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, DELETE'); // Added DELETE
     // Specifies which headers are allowed in cross-origin requests.
