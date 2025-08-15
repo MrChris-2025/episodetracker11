@@ -73,7 +73,7 @@ async function saveProgress(progressData) {
 app.use((req, res, next) => {
     // Allow requests from your Netlify domain and localhost for development
     const allowedOrigins = [
-        'https://your-netlify-app-name.netlify.app', // Replace with your actual Netlify URL
+        'https://episodetracker11.netlify.app', // Replace with your actual Netlify URL
         'http://localhost:3000', // For local development
         'http://127.0.0.1:3000'
     ];
