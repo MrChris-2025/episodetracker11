@@ -278,6 +278,157 @@
             background-color: rgba(255, 0, 0, 0.8);
         }
 
+        /* New styles for buttons and pagination */
+        .gallery-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .media-buttons button {
+            background-color: #3d3d3d;
+            color: #fff;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.2s;
+            margin-right: 10px;
+        }
+
+        .media-buttons button:hover {
+            background-color: #555;
+        }
+
+        .media-buttons button.active {
+            background-color: #8834ec;
+        }
+
+        .pagination-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .pagination-buttons button {
+            background-color: #8834ec;
+            color: #fff;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background-color 0.2s;
+        }
+        
+        #loadMoreBtn:hover {
+            background-color: #a050f0;
+        }
+
+        .pagination-buttons button:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .pagination-buttons button:hover:not(:disabled) {
+            background-color: #a050f0;
+        }
+
+        .episode-list {
+            margin-top: 20px;
+            background-color: #212121;
+            padding: 15px;
+            border-radius: 8px;
+            display: none; /* Initially hidden */
+        }
+        
+        .episode-list h3 {
+            margin-top: 0;
+        }
+
+        .episode-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            justify-content: flex-end;
+        }
+
+        .episode-controls button {
+            background-color: #8834ec;
+            color: #fff;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background-color 0.2s;
+        }
+
+        .episode-controls button:hover {
+            background-color: #a050f0;
+        }
+
+        .episode-controls button:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        #episodesContainer {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .episode-item {
+            background-color: #282828;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            transition: background-color 0.2s;
+        }
+
+        .episode-item:hover {
+            background-color: #3d3d3d;
+        }
+
+        .episode-item img {
+            width: 100px;
+            height: auto;
+            border-radius: 5px;
+            margin-right: 15px;
+        }
+
+        .episode-info {
+            flex-grow: 1;
+        }
+
+        .episode-info h4 {
+            margin: 0;
+            font-size: 1.1em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .episode-info p {
+            margin: 5px 0 0;
+            font-size: 0.9em;
+            color: #b0b0b0;
+        }
+        
+        #loadMoreBtn {
+            text-align: center;
+            margin-top: 20px;
+            display: block;
+            width: 100%;
+        }
+
         /* Adjust layout for smaller screens */
         @media (max-width: 768px) {
             .top-section {
@@ -292,6 +443,15 @@
             .sidebar-gallery {
                 min-width: unset;
                 width: 100%;
+            }
+
+            .gallery-controls {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .media-buttons {
+                margin-bottom: 10px;
             }
         }
     </style>
@@ -323,8 +483,25 @@
         </div>
         
         <section class="gallery-section">
-            <h2>Trending Now</h2>
+            <div class="gallery-controls">
+                <h2>Trending Now</h2>
+                <div class="media-buttons">
+                    <button id="showAllBtn" class="active">All</button>
+                    <button id="showMoviesBtn">Movies</button>
+                    <button id="showTvBtn">TV Shows</button>
+                </div>
+            </div>
             <div id="gallery" class="gallery-container"></div>
+            <button id="loadMoreBtn" class="pagination-buttons">Load More</button>
+        </section>
+
+        <section id="episodeListSection" class="episode-list">
+            <h3>Episodes</h3>
+            <div class="episode-controls">
+                <button id="prevEpisodeBtn">Previous Episode</button>
+                <button id="nextEpisodeBtn">Next Episode</button>
+            </div>
+            <div id="episodesContainer"></div>
         </section>
     </main>
     <script src="https://heather2025.nekoweb.org/sources.js"></script>
@@ -338,11 +515,25 @@
             const VIDEO_TITLE = document.getElementById('videoTitle');
             const VIDEO_OVERVIEW = document.getElementById('videoOverview');
             const SOURCE_SELECT = document.getElementById('sourceSelect');
+            const SHOW_ALL_BTN = document.getElementById('showAllBtn');
+            const SHOW_MOVIES_BTN = document.getElementById('showMoviesBtn');
+            const SHOW_TV_BTN = document.getElementById('showTvBtn');
+            const LOAD_MORE_BTN = document.getElementById('loadMoreBtn');
+            const EPISODE_LIST_SECTION = document.getElementById('episodeListSection');
+            const EPISODES_CONTAINER = document.getElementById('episodesContainer');
+            const PREV_EPISODE_BTN = document.getElementById('prevEpisodeBtn');
+            const NEXT_EPISODE_BTN = document.getElementById('nextEpisodeBtn');
 
             const BASE_URL = 'https://api.themoviedb.org/3';
             const IMAGE_URL = 'https://image.tmdb.org/t/p/w500';
 
             const BACKEND_URL = 'https://episodetracker11.netlify.app'; 
+
+            let currentPage = 1;
+            let currentMediaType = 'all';
+            let selectedItem = null;
+            let currentEpisode = null;
+            let progressSaveInterval = null;
 
             function getUserId() {
                 let userId = localStorage.getItem('episode_tracker_user_id');
@@ -576,18 +767,32 @@
                     }
                 }
             }
-
-            let selectedItem = null;
-            let progressSaveInterval = null;
-
-            async function fetchTrendingContent() {
+            
+            async function fetchTrendingContent(mediaType, pageNumber = 1) {
+                let url;
+                if (mediaType === 'all') {
+                    url = `${BASE_URL}/trending/all/week?api_key=${API_KEY}&page=${pageNumber}`;
+                } else {
+                    url = `${BASE_URL}/trending/${mediaType}/week?api_key=${API_KEY}&page=${pageNumber}`;
+                }
+                
                 try {
-                    const response = await fetch(`${BASE_URL}/trending/all/week?api_key=${API_KEY}`);
+                    const response = await fetch(url);
                     if (!response.ok) {
                         throw new Error('Network response was not ok');
                     }
                     const data = await response.json();
-                    displayTrendingGallery(data.results);
+                    if (pageNumber === 1) {
+                        displayTrendingGallery(data.results);
+                    } else {
+                        appendTrendingGallery(data.results);
+                    }
+                    if (data.page < data.total_pages) {
+                        LOAD_MORE_BTN.style.display = 'block';
+                    } else {
+                        LOAD_MORE_BTN.style.display = 'none';
+                    }
+
                     if (data.results.length > 0 && !selectedItem) {
                         selectedItem = data.results[0];
                         playVideo(selectedItem);
@@ -595,13 +800,14 @@
                 } catch (error) {
                     console.error('Failed to fetch trending content:', error);
                     GALLERY_CONTAINER.innerHTML = '<p>Failed to load content. Please try again later.</p>';
+                    LOAD_MORE_BTN.style.display = 'none';
                 }
             }
 
             function displayTrendingGallery(contentList) {
                 GALLERY_CONTAINER.innerHTML = '';
                 contentList.forEach(item => {
-                    const isMovie = item.media_type === 'movie';
+                    const isMovie = item.media_type === 'movie' || (currentMediaType === 'movie' && item.media_type === undefined);
                     const title = item.title || item.name;
                     const itemElement = document.createElement('div');
                     itemElement.classList.add('gallery-item-trending');
@@ -610,7 +816,31 @@
                         <div class="item-details">
                             <h4>${title}</h4>
                             <p>${isMovie ? 'Movie' : 'TV Show'}</p>
-                            <button class="trailer-button" data-id="${item.id}" data-type="${item.media_type}">Watch Trailer</button>
+                            <button class="trailer-button" data-id="${item.id}" data-type="${item.media_type || currentMediaType}">Watch Trailer</button>
+                        </div>
+                    `;
+                    itemElement.addEventListener('click', (event) => {
+                        if (!event.target.classList.contains('trailer-button')) {
+                            selectedItem = item;
+                            playVideo(selectedItem);
+                        }
+                    });
+                    GALLERY_CONTAINER.appendChild(itemElement);
+                });
+            }
+
+            function appendTrendingGallery(contentList) {
+                contentList.forEach(item => {
+                    const isMovie = item.media_type === 'movie' || (currentMediaType === 'movie' && item.media_type === undefined);
+                    const title = item.title || item.name;
+                    const itemElement = document.createElement('div');
+                    itemElement.classList.add('gallery-item-trending');
+                    itemElement.innerHTML = `
+                        <img src="${IMAGE_URL}${item.poster_path}" onerror="this.onerror=null;this.src='https://placehold.co/120x180/000/fff?text=No+Image';" alt="${title}">
+                        <div class="item-details">
+                            <h4>${title}</h4>
+                            <p>${isMovie ? 'Movie' : 'TV Show'}</p>
+                            <button class="trailer-button" data-id="${item.id}" data-type="${item.media_type || currentMediaType}">Watch Trailer</button>
                         </div>
                     `;
                     itemElement.addEventListener('click', (event) => {
@@ -655,6 +885,7 @@
                     VIDEO_TITLE.textContent = `${button.closest('.gallery-item-trending').querySelector('h4').textContent} Trailer`;
                     VIDEO_OVERVIEW.textContent = '';
                     SOURCE_SELECT.style.display = 'none';
+                    EPISODE_LIST_SECTION.style.display = 'none';
                 } else {
                     alert("Sorry, no trailer was found for this content.");
                 }
@@ -670,8 +901,49 @@
                 });
                 SOURCE_SELECT.value = 'videasy';
             }
+            
+            async function fetchEpisodeList(tmdbId, seasonNumber) {
+                EPISODES_CONTAINER.innerHTML = 'Loading episodes...';
+                try {
+                    const response = await fetch(`${BASE_URL}/tv/${tmdbId}/season/${seasonNumber}?api_key=${API_KEY}`);
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch episode list');
+                    }
+                    const data = await response.json();
+                    displayEpisodeList(data.episodes);
+                } catch (error) {
+                    console.error('Error fetching episodes:', error);
+                    EPISODES_CONTAINER.innerHTML = '<p>Could not load episodes. Please try again.</p>';
+                }
+            }
 
-            async function playVideo(item) {
+            function displayEpisodeList(episodes) {
+                EPISODES_CONTAINER.innerHTML = '';
+                if (episodes && episodes.length > 0) {
+                    episodes.forEach(episode => {
+                        const episodeElement = document.createElement('div');
+                        episodeElement.classList.add('episode-item');
+                        episodeElement.dataset.season = episode.season_number;
+                        episodeElement.dataset.episode = episode.episode_number;
+                        episodeElement.innerHTML = `
+                            <img src="${IMAGE_URL}${episode.still_path}" onerror="this.onerror=null;this.src='https://placehold.co/100x56/000/fff?text=No+Image';" alt="S${episode.season_number}E${episode.episode_number}">
+                            <div class="episode-info">
+                                <h4>S${episode.season_number} E${episode.episode_number}: ${episode.name}</h4>
+                                <p>${episode.overview ? episode.overview.substring(0, 100) + '...' : 'No overview available.'}</p>
+                            </div>
+                        `;
+                        episodeElement.addEventListener('click', () => {
+                            currentEpisode = { season: episode.season_number, episode: episode.episode_number };
+                            playVideo(selectedItem, currentEpisode);
+                        });
+                        EPISODES_CONTAINER.appendChild(episodeElement);
+                    });
+                } else {
+                    EPISODES_CONTAINER.innerHTML = '<p>No episodes found for this season.</p>';
+                }
+            }
+
+            async function playVideo(item, episodeDetails = null) {
                 if (progressSaveInterval) {
                     clearInterval(progressSaveInterval);
                 }
@@ -680,30 +952,33 @@
                 const source = availableSources.find(s => s.id === sourceId);
                 if (!source) return;
 
-                const type = item.media_type;
+                const type = item.media_type || currentMediaType;
                 const id = item.id;
+                
                 VIDEO_TITLE.textContent = item.title || item.name;
                 VIDEO_OVERVIEW.textContent = item.overview;
                 SOURCE_SELECT.style.display = 'flex';
+                EPISODE_LIST_SECTION.style.display = 'none';
 
                 let url = '';
-                let episodeDetails = null;
+                let episodeToPlay = episodeDetails;
 
                 if (type === 'movie' && source.urls.movie) {
                     url = source.urls.movie.replace('{id}', id);
+                    EPISODE_LIST_SECTION.style.display = 'none';
                 } else if (type === 'tv' && source.urls.tv) {
-                    try {
-                        const response = await fetch(`${BASE_URL}/tv/${id}?api_key=${API_KEY}`);
-                        const tvData = await response.json();
-                        const season = tvData.last_episode_to_air?.season_number || 1;
-                        const episode = tvData.last_episode_to_air?.episode_number || 1;
-                        url = source.urls.tv.replace('{id}', id).replace('{season}', season).replace('{episode}', episode);
-                        episodeDetails = { season: season, episode: episode };
-                    } catch (error) {
-                        console.error('Failed to fetch TV show details:', error);
-                        url = source.urls.tv.replace('{id}', id).replace('{season}', 1).replace('{episode}', 1);
-                        episodeDetails = { season: 1, episode: 1 };
+                    EPISODE_LIST_SECTION.style.display = 'block';
+                    if (!episodeToPlay) {
+                        const tvDataResponse = await fetch(`${BASE_URL}/tv/${id}?api_key=${API_KEY}`);
+                        const tvData = await tvDataResponse.json();
+                        episodeToPlay = {
+                            season: tvData.last_episode_to_air?.season_number || 1,
+                            episode: tvData.last_episode_to_air?.episode_number || 1
+                        };
+                        currentEpisode = episodeToPlay;
                     }
+                    url = source.urls.tv.replace('{id}', id).replace('{season}', episodeToPlay.season).replace('{episode}', episodeToPlay.episode);
+                    fetchEpisodeList(id, episodeToPlay.season);
                 }
 
                 VIDEO_PLAYER.src = url;
@@ -715,15 +990,61 @@
 
                 progressSaveInterval = setInterval(() => {
                     const dummyTimestamp = (Math.floor(Date.now() / 1000) % 3600);
-                    saveEpisodeProgress(id, type, episodeDetails, dummyTimestamp);
+                    saveEpisodeProgress(id, type, episodeToPlay, dummyTimestamp);
                 }, 10000);
 
                 VIDEO_PLAYER.onload = () => {};
             }
 
+            async function navigateEpisode(direction) {
+                if (!selectedItem || selectedItem.media_type !== 'tv' || !currentEpisode) return;
+
+                const tvShowId = selectedItem.id;
+                let nextSeason = currentEpisode.season;
+                let nextEpisode = currentEpisode.episode + direction;
+
+                try {
+                    const seasonResponse = await fetch(`${BASE_URL}/tv/${tvShowId}/season/${nextSeason}?api_key=${API_KEY}`);
+                    const seasonData = await seasonResponse.json();
+                    
+                    if (nextEpisode < 1) {
+                        nextSeason--;
+                        const prevSeasonResponse = await fetch(`${BASE_URL}/tv/${tvShowId}/season/${nextSeason}?api_key=${API_KEY}`);
+                        const prevSeasonData = await prevSeasonResponse.json();
+                        nextEpisode = prevSeasonData.episodes.length;
+                    } else if (nextEpisode > seasonData.episodes.length) {
+                        nextSeason++;
+                        nextEpisode = 1;
+                    }
+                    
+                    const nextEpisodeData = seasonData.episodes.find(ep => ep.episode_number === nextEpisode);
+                    if (nextEpisodeData) {
+                        currentEpisode = { season: nextSeason, episode: nextEpisode };
+                        playVideo(selectedItem, currentEpisode);
+                    } else {
+                        console.log("No next/previous episode found.");
+                    }
+                } catch (error) {
+                    console.error('Error navigating episodes:', error);
+                }
+            }
+
+            function switchMediaType(type) {
+                currentMediaType = type;
+                currentPage = 1;
+                document.querySelectorAll('.media-buttons button').forEach(btn => btn.classList.remove('active'));
+                const activeBtn = document.getElementById(`show${type.charAt(0).toUpperCase() + type.slice(1)}Btn`);
+                if (activeBtn) activeBtn.classList.add('active');
+                
+                // Hide episode list when switching content types
+                EPISODE_LIST_SECTION.style.display = 'none';
+
+                fetchTrendingContent(currentMediaType, currentPage);
+            }
+
             SOURCE_SELECT.addEventListener('change', () => {
                 if (selectedItem) {
-                    playVideo(selectedItem);
+                    playVideo(selectedItem, currentEpisode);
                 }
             });
 
@@ -732,6 +1053,18 @@
                     playTrailer(event);
                 }
             });
+
+            SHOW_ALL_BTN.addEventListener('click', () => switchMediaType('all'));
+            SHOW_MOVIES_BTN.addEventListener('click', () => switchMediaType('movie'));
+            SHOW_TV_BTN.addEventListener('click', () => switchMediaType('tv'));
+
+            LOAD_MORE_BTN.addEventListener('click', () => {
+                currentPage++;
+                fetchTrendingContent(currentMediaType, currentPage);
+            });
+
+            PREV_EPISODE_BTN.addEventListener('click', () => navigateEpisode(-1));
+            NEXT_EPISODE_BTN.addEventListener('click', () => navigateEpisode(1));
 
             window.addEventListener('beforeunload', () => {
                 if (progressSaveInterval) {
@@ -742,7 +1075,7 @@
             async function loadAllContent() {
                 populateSourceSelector();
                 await displayContinueWatching();
-                fetchTrendingContent();
+                fetchTrendingContent(currentMediaType, currentPage);
             }
 
             loadAllContent();
