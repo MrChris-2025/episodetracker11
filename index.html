@@ -45,6 +45,35 @@
             background-color: #000;
         }
 
+        .episode-nav-container {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .episode-nav-container button {
+            background-color: #8834ec;
+            color: #fff;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background-color 0.2s;
+        }
+        
+        .episode-nav-container button:hover {
+            background-color: #a050f0;
+        }
+
+        .episode-nav-container button:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        
         #videoDetails {
             margin-top: 20px;
         }
@@ -348,35 +377,7 @@
         .episode-list h3 {
             margin-top: 0;
         }
-
-        .episode-controls {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
-            justify-content: flex-end;
-        }
-
-        .episode-controls button {
-            background-color: #8834ec;
-            color: #fff;
-            border: none;
-            padding: 8px 12px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 0.9em;
-            transition: background-color 0.2s;
-        }
-
-        .episode-controls button:hover {
-            background-color: #a050f0;
-        }
-
-        .episode-controls button:disabled {
-            background-color: #555;
-            cursor: not-allowed;
-            opacity: 0.5;
-        }
-
+        
         #episodesContainer {
             display: flex;
             flex-direction: column;
@@ -464,6 +465,10 @@
         <div class="top-section">
             <section class="video-player-container">
                 <iframe id="videoPlayer" width="100%" height="auto" src="" frameborder="0" allowfullscreen sandbox="allow-same-origin allow-scripts"></iframe>
+                <div class="episode-nav-container" id="episodeNavContainer" style="display:none;">
+                    <button id="prevEpisodeBtn">Previous Episode</button>
+                    <button id="nextEpisodeBtn">Next Episode</button>
+                </div>
                 <div id="videoDetails">
                     <h2 id="videoTitle"></h2>
                     <div class="source-selector">
@@ -472,6 +477,10 @@
                     </div>
                     <p id="videoOverview"></p>
                 </div>
+                <section id="episodeListSection" class="episode-list">
+                    <h3>Episodes</h3>
+                    <div id="episodesContainer"></div>
+                </section>
             </section>
             <aside class="sidebar-gallery">
                 <h2 id="continueWatchingHeader">Continue Watching</h2>
@@ -494,15 +503,6 @@
             <div id="gallery" class="gallery-container"></div>
             <button id="loadMoreBtn" class="pagination-buttons">Load More</button>
         </section>
-
-        <section id="episodeListSection" class="episode-list">
-            <h3>Episodes</h3>
-            <div class="episode-controls">
-                <button id="prevEpisodeBtn">Previous Episode</button>
-                <button id="nextEpisodeBtn">Next Episode</button>
-            </div>
-            <div id="episodesContainer"></div>
-        </section>
     </main>
     <script src="https://heather2025.nekoweb.org/sources.js"></script>
     <script>
@@ -521,6 +521,7 @@
             const LOAD_MORE_BTN = document.getElementById('loadMoreBtn');
             const EPISODE_LIST_SECTION = document.getElementById('episodeListSection');
             const EPISODES_CONTAINER = document.getElementById('episodesContainer');
+            const EPISODE_NAV_CONTAINER = document.getElementById('episodeNavContainer');
             const PREV_EPISODE_BTN = document.getElementById('prevEpisodeBtn');
             const NEXT_EPISODE_BTN = document.getElementById('nextEpisodeBtn');
 
@@ -886,6 +887,7 @@
                     VIDEO_OVERVIEW.textContent = '';
                     SOURCE_SELECT.style.display = 'none';
                     EPISODE_LIST_SECTION.style.display = 'none';
+                    EPISODE_NAV_CONTAINER.style.display = 'none';
                 } else {
                     alert("Sorry, no trailer was found for this content.");
                 }
@@ -959,6 +961,7 @@
                 VIDEO_OVERVIEW.textContent = item.overview;
                 SOURCE_SELECT.style.display = 'flex';
                 EPISODE_LIST_SECTION.style.display = 'none';
+                EPISODE_NAV_CONTAINER.style.display = 'none';
 
                 let url = '';
                 let episodeToPlay = episodeDetails;
@@ -968,6 +971,8 @@
                     EPISODE_LIST_SECTION.style.display = 'none';
                 } else if (type === 'tv' && source.urls.tv) {
                     EPISODE_LIST_SECTION.style.display = 'block';
+                    EPISODE_NAV_CONTAINER.style.display = 'flex';
+
                     if (!episodeToPlay) {
                         const tvDataResponse = await fetch(`${BASE_URL}/tv/${id}?api_key=${API_KEY}`);
                         const tvData = await tvDataResponse.json();
@@ -1036,9 +1041,8 @@
                 const activeBtn = document.getElementById(`show${type.charAt(0).toUpperCase() + type.slice(1)}Btn`);
                 if (activeBtn) activeBtn.classList.add('active');
                 
-                // Hide episode list when switching content types
                 EPISODE_LIST_SECTION.style.display = 'none';
-
+                EPISODE_NAV_CONTAINER.style.display = 'none';
                 fetchTrendingContent(currentMediaType, currentPage);
             }
 
