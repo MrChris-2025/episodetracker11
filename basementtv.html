@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StreamFlix</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Custom Tailwind config for Netflix colors
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'netflix-red': '#E50914', // Vibrant Netflix Red
+                        'netflix-dark': '#0f0f0f', // Deepest background
+                        'netflix-medium': '#1c1c1c', // Header, List background
+                        'netflix-light': '#2c2c2c', // Card/Player background
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Load Lucide icons -->
+    <script type="module">
+        import { createIcons, MonitorPlay, Film, Tv, ChevronLeft, ChevronRight, Search, Loader } from 'https://unpkg.com/lucide@latest';
+        createIcons({ icons: { MonitorPlay, Film, Tv, ChevronLeft, ChevronRight, Search, Loader } });
+        // Expose icons for dynamic injection in JS
+        window.MonitorPlay = MonitorPlay;
+        window.Film = Film;
+        window.Tv = Tv;
+        window.Loader = Loader;
+    </script>
+    <style>
+        /* Custom styles for Netflix dark theme and responsiveness */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f0f0f; /* Deep dark grey/black for background */
+            color: #e4e4e7;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Set the main content area to take full height minus the header */
+        #main-content-area {
+            height: calc(100vh - 4rem); /* 100vh minus 4rem (h-16 header) */
+            display: flex;
+        }
+        
+        /* Match list container for scrolling */
+        #content-list-container {
+            overflow-y: auto;
+            height: 100%; 
+            flex-grow: 1;
+        }
+        
+        /* Custom scrollbar for dark theme */
+        #content-list-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        #content-list-container::-webkit-scrollbar-thumb {
+            background-color: #e50914; 
+            border-radius: 3px;
+        }
+        #content-list-container::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        /* Iframe height constraint */
+        .player-iframe {
+            height: 300px; /* Default height */
+            max-width: 100%;
+            margin: auto;
+            transition: height 0.5s ease, margin 0.5s ease; 
+        }
+
+        /* Theater Mode Stretch */
+        .theater-iframe-stretch {
+            height: 75vh !important; 
+            max-height: 100%; 
+            margin: 0 !important;
+        }
+
+        /* NEW: Class to remove padding from the right panel for true full-screen immersion */
+        .full-immersion-right {
+            padding: 0 !important; 
+        }
+
+        /* Styling for the TV-like dropdown and search */
+        #season-selector, #episode-selector, #source-selector-1, 
+        #genre-filter, #year-filter {
+            background-color: #1c1c1c; /* netflix-medium */
+            border: 1px solid #4a0000; /* Dark red border */
+            color: #e4e4e7;
+            appearance: none;
+        }
+        
+        /* Mobile layout adjustments */
+        @media (max-width: 768px) {
+            #main-content-area {
+                flex-direction: column;
+                height: auto;
+            }
+            #left-panel {
+                width: 100%;
+                min-width: 100%;
+                border-right: none;
+                border-bottom: 1px solid #333;
+            }
+            #right-panel {
+                padding: 0.5rem !important; /* Adjust padding for mobile to be less intrusive */
+            }
+            .player-iframe {
+                height: 200px; 
+            }
+            /* Adjust theater mode stretch for smaller screens */
+            .theater-iframe-stretch {
+                height: 50vh !important; 
+            }
+
+            /* Filters stack on mobile */
+            #controls-container > div.flex.space-x-3 {
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+
+            #controls-container > div.flex.space-x-3 > select {
+                width: 100%;
+            }
+        }
+        
+        /* --- STYLES FOR OVERLAY CONTROLS IN THEATER MODE --- */
+
+        /* Ensure player area is always ready for absolute positioning */
+        #player-area-1 {
+            position: relative; 
+        }
+        
+        /* Base style for the controls in overlay mode */
+        .overlay-controls {
+            position: absolute;
+            bottom: 1.5rem; 
+            right: 1.5rem;
+            left: 1.5rem; /* Stretch width in theater mode */
+            z-index: 20;
+            
+            opacity: 0; 
+            pointer-events: none; 
+            transition: opacity 0.4s ease-in-out;
+            background-color: rgba(15, 15, 15, 0.9);
+            padding: 0.75rem;
+            border-radius: 0.75rem; 
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
+            
+            flex-direction: row; 
+            justify-content: space-between !important; /* Spread elements */
+            align-items: center;
+            flex-wrap: wrap; 
+        }
+
+        /* Visibility class */
+        .overlay-visible {
+            opacity: 1;
+            pointer-events: auto; 
+        }
+        
+        /* Mobile specific overlay position adjustment */
+        @media (max-width: 768px) {
+            .overlay-controls {
+                bottom: 0.5rem;
+                left: 0.5rem;
+                right: 0.5rem;
+                padding: 0.5rem;
+                flex-direction: column !important; 
+                align-items: flex-start !important;
+                justify-content: flex-start !important;
+            }
+            .overlay-controls > div { 
+                margin-right: 0;
+                margin-bottom: 0.5rem;
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
+
+        /* --- STYLES FOR SCROLL INDICATORS --- */
+        .scroll-indicator {
+            z-index: 30;
+            cursor: pointer;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        #scroll-up-indicator {
+            /* Gradient fade from top (dark) to bottom (transparent) */
+            background: linear-gradient(to bottom, rgba(15, 15, 15, 0.9), rgba(15, 15, 15, 0.0) 80%);
+        }
+
+        #scroll-down-indicator {
+            /* Gradient fade from bottom (dark) to top (transparent) */
+            background: linear-gradient(to top, rgba(15, 15, 15, 0.9), rgba(15, 15, 15, 0.0) 80%);
+        }
+
+        .scroll-indicator.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <!-- Header (Netflix Black/Red) -->
+    <header class="h-16 bg-netflix-medium flex items-center px-6 shadow-xl z-10 sticky top-0 border-b border-red-800">
+        <!-- 1. Left: Logo -->
+        <h1 class="text-2xl font-bold text-netflix-red min-w-[120px]">StreamFlix</h1>
+        
+        <!-- 2. Center: Status Text -->
+        <div id="status-container" class="flex-grow flex items-center justify-center min-w-0">
+            <div class="inline-flex items-center space-x-2 px-6">
+                <i data-lucide="monitor-play" class="w-5 h-5 text-netflix-red hidden sm:block shrink-0"></i>
+                <span id="player-status-text" class="text-lg sm:text-xl font-bold text-white block transition duration-200 truncate max-w-full">
+                    Select Content to Start Streaming
+                </span>
+            </div>
+        </div>
+        
+        <!-- 3. Right: Spacer -->
+        <div class="min-w-[120px] ml-auto"></div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <div id="main-content-area" class="flex">
+
+        <!-- 1. Left Panel (Content List & Selector) -->
+        <div id="left-panel" class="w-[30%] min-w-[320px] bg-netflix-medium p-4 flex flex-col space-y-4 border-r border-gray-800 transition-all duration-500 ease-in-out">
+            
+            <!-- Content Type Segmented Control, Filters, and Search Bar -->
+            <div id="controls-container" class="space-y-3">
+                
+                <!-- Segmented Control for Content Type -->
+                <div class="flex space-x-3">
+                    <div class="w-full flex bg-netflix-dark rounded-xl p-1 border border-red-900 shadow-inner">
+                        <button data-type="movie" class="content-toggle-btn flex-grow py-2 px-3 text-sm font-semibold rounded-lg transition duration-200 bg-netflix-red text-white shadow-md" aria-pressed="true">
+                            <i data-lucide="film" class="w-4 h-4 inline mr-1"></i> Movies
+                        </button>
+                        <button data-type="tv" class="content-toggle-btn flex-grow py-2 px-3 text-sm font-semibold rounded-lg transition duration-200 text-gray-300 hover:bg-red-900/50" aria-pressed="false">
+                            <i data-lucide="tv" class="w-4 h-4 inline mr-1"></i> TV Shows
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Genre and Year Filters -->
+                <div class="flex space-x-3">
+                    <!-- Genre Selector -->
+                    <select id="genre-filter" class="w-1/2 p-2.5 rounded-lg bg-netflix-dark border border-gray-700 focus:ring-netflix-red focus:border-netflix-red text-white transition placeholder-gray-500 shadow-inner">
+                        <option value="">All Genres</option>
+                    </select>
+
+                    <!-- Year Selector -->
+                    <select id="year-filter" class="w-1/2 p-2.5 rounded-lg bg-netflix-dark border border-gray-700 focus:ring-netflix-red focus:border-netflix-red text-white transition placeholder-gray-500 shadow-inner">
+                        <option value="">All Years</option>
+                        <!-- Years populated by JS -->
+                    </select>
+                </div>
+                
+                <!-- Search Bar -->
+                <div class="w-full relative">
+                    <input type="text" id="content-search" placeholder="Search Content..." 
+                           class="w-full p-2.5 pl-10 rounded-lg bg-netflix-dark border border-gray-700 focus:ring-netflix-red focus:border-netflix-red text-white transition placeholder-gray-500 shadow-inner">
+                    <i data-lucide="search" class="w-5 h-5 text-gray-500 absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none"></i>
+                </div>
+            </div>
+
+            <!-- Content List Container (Wrapper for Indicators) -->
+            <div id="list-wrapper" class="relative flex-grow flex overflow-hidden">
+                
+                <!-- Scroll Up Indicator -->
+                <div id="scroll-up-indicator" 
+                     class="scroll-indicator absolute top-0 left-0 right-0 h-10 flex justify-end items-end pr-4 pt-2">
+                    <button class="w-8 h-8 bg-gray-700/90 hover:bg-gray-600 rounded-full shadow-lg border border-gray-600 focus:outline-none transition duration-150 flex items-center justify-center text-xl" 
+                            onclick="document.getElementById('content-list-container').scrollBy({ top: -300, behavior: 'smooth' })"
+                            aria-label="Scroll Up">
+                        🔺
+                    </button>
+                </div>
+
+                <div id="content-list-container" class="flex-grow space-y-4 pr-4 h-full">
+                    <!-- Loading State / Content List will be rendered here -->
+                    <div id="content-list" class="space-y-3">
+                        <div class="animate-pulse bg-netflix-light rounded-lg h-24"></div>
+                        <div class="animate-pulse bg-netflix-light rounded-lg h-24"></div>
+                        <div class="animate-pulse bg-netflix-light rounded-lg h-24"></div>
+                    </div>
+                </div>
+
+                <!-- Scroll Down Indicator (also acts as pagination control via emoji) -->
+                <div id="scroll-down-indicator" 
+                     class="scroll-indicator absolute bottom-0 left-0 right-0 h-10 flex justify-end items-start pr-4 pb-2">
+                    <button class="w-8 h-8 bg-gray-700/90 hover:bg-gray-600 rounded-full shadow-lg border border-gray-600 focus:outline-none transition duration-150 flex items-center justify-center text-xl"
+                            onclick="document.getElementById('content-list-container').scrollBy({ top: 300, behavior: 'smooth' })"
+                            aria-label="Scroll Down">
+                        🔻
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Right Panel (Primary Player) -->
+        <div id="right-panel" class="flex-grow bg-netflix-dark p-6 flex flex-col overflow-y-auto transition-all duration-500 ease-in-out">
+            
+            <!-- Primary Player Area -->
+            <div id="player-area-1" class="bg-netflix-light rounded-xl p-4 shadow-2xl flex-grow flex flex-col justify-center items-center">
+                
+                <div class="w-full space-y-4 relative">
+                    
+                    <!-- NEW: Player Message/Loading Overlay -->
+                    <div id="player-message-overlay" class="absolute inset-0 bg-black/90 rounded-xl flex items-center justify-center text-center p-8 transition-opacity duration-500">
+                        <!-- Content injected by JS -->
+                    </div>
+
+                    <!-- Primary Player -->
+                    <iframe 
+                        id="stream-player-1" 
+                        class="player-iframe w-full bg-black rounded-xl shadow-inner border border-gray-700" 
+                        src="" 
+                        frameborder="0" 
+                        sandbox="allow-same-origin allow-scripts" 
+                        allowfullscreen 
+                        title="Primary Stream Player">
+                    </iframe>
+
+                    <!-- Player Controls: Source Selector, TV Controls, and Theater Mode -->
+                    <div id="stream-controls-1" class="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-3 sm:space-y-0 bg-netflix-medium p-3 rounded-lg border border-red-700" style="display: none;">
+                        
+                        <!-- 1. Stream Source Selector -->
+                        <div class="flex items-center space-x-3">
+                            <select id="source-selector-1" class="p-2 bg-red-800 text-white rounded-md text-sm cursor-pointer hover:bg-red-700 transition">
+                                <option value="">Loading Sources...</option>
+                            </select>
+                        </div>
+
+                        <!-- 2. TV Season/Episode Nav -->
+                        <div id="tv-controls" class="flex items-center space-x-2" style="display: none;">
+                            <!-- Previous Episode Button -->
+                            <button id="prev-episode-btn" class="flex items-center space-x-1 p-2 bg-red-800 hover:bg-red-700 text-white rounded-lg text-sm transition transform hover:scale-[1.02]">
+                                <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                                <span>Prev E</span>
+                            </button>
+
+                            <!-- Season Selector (For quick jumping) -->
+                            <select id="season-selector" class="p-2 bg-netflix-dark text-white rounded-lg text-sm cursor-pointer hover:bg-netflix-light transition w-20 text-center"></select>
+                            
+                            <!-- Episode Selector (For quick jumping) -->
+                            <select id="episode-selector" class="p-2 bg-netflix-dark text-white rounded-lg text-sm cursor-pointer hover:bg-netflix-light transition w-24 text-center"></select>
+                            
+                            <!-- Next Episode Button -->
+                            <button id="next-episode-btn" class="flex items-center space-x-1 p-2 bg-red-800 hover:bg-red-700 text-white rounded-lg text-sm transition transform hover:scale-[1.02]">
+                                <span>Next E</span>
+                                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- 3. Theater Mode button -->
+                        <div class="flex sm:justify-end">
+                            <button id="toggle-theater-mode-btn" class="bg-red-800 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg text-sm transition transform hover:scale-[1.02]" onclick="toggleTheaterMode()">
+                                Theater Mode
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Modal for error/messages (instead of alert()) -->
+    <div id="modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 transition-opacity duration-300 opacity-0 pointer-events-none">
+        <div class="bg-gray-800 p-6 rounded-xl shadow-2xl border border-red-500 max-w-sm w-full transform -translate-y-5 transition-transform duration-300">
+            <h3 id="modal-title" class="text-xl font-bold mb-4 text-red-400">Error</h3>
+            <p id="modal-message" class="text-gray-200 mb-6"></p>
+            <button onclick="hideModal()" class="w-full bg-red-600 hover:bg-red-500 text-white font-semibold py-2 rounded-lg transition">Close</button>
+        </div>
+    </div>
+
+
+    <script>
+        // --- TMDB & Streamer Configuration ---
+        const TMDB_API_KEY = '1070730380f5fee0d87cf0382670b255';
+        const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
+        const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
+        const FALLBACK_POSTER_URL = 'https://placehold.co/100x150/1c1c1c/999999?text=No+Poster';
+        
+        const availableSources = [
+            { id: 'wplayme', name: 'Wplay.me', urls: { movie: 'https://embed.wplay.me/embed/movie/{id}', tv: 'https://embed.wplay.me/embed/tv/{id}/{season}/{episode}' } },
+            { id: 'primewire', name: 'Primewire', urls: { movie: 'https://www.primewire.tf/embed/movie?tmdb={id}', tv: 'https://www.primewire.tf/embed/tv?tmdb={id}&season={season}&episode={episode}&server=fileLions' } },
+            { id: 'vidpop', name: 'Vidpop', urls: { movie: 'https://www.vidpop.xyz/embed/?id={id}', tv: 'https://www.vidpop.xyz/embed/?id={id}&season={season}&episode={episode}' } },
+            { id: 'vidsrcpk', name: 'VidSrcPk', urls: { movie: 'https://vidsrc.win/movie/?id={id}', tv: 'https://vidsrc.win/tv.html?id={id}&season={season}&episode={episode}' } },
+            { id: 'rive', name: 'RiveStream', urls: { movie: 'https://rivestream.org/embed?type=movie&id={id}', tv: 'https://rivestream.org/embed?type=tv&id={id}&season={season}&episode={episode}' } },
+            { id: 'vidnest', name: 'VidNest', urls: { movie: 'https://vidnest.fun/movie/{id}', tv: 'https://vidnest.fun/tv/{id}/{season}/{episode}' } },
+            { id: 'bludclart', name: 'Bludclart', urls: { movie: 'https://watch.bludclart.com/movie/{id}', tv: 'https://www.vidking.net/embed/tv/{id}/{season}/{episode}' } },
+            { id: 'hexa', name: 'Hexa', urls: { movie: 'https://hexa.watch/watch/movie/{id}', tv: 'https://hexa.watch/watch/tv/{id}/{season}/{episode}' } },
+            { id: 'vidzee', name: 'VidZee', urls: { movie: 'https://player.vidzee.wtf/embed/movie/{id}', tv: 'https://player.vidzee.wtf/embed/tv/{id}/{season}/{episode}' } },
+            { id: 'vidify', name: 'Vidify', urls: { movie: 'https://vidify.top/embed/movie/{id}', tv: 'https://vidify.top/embed/tv/{id}/{season}/{episode}' } },
+            { id: 'spenflix', name: 'SpenFlix', urls: { movie: 'https://spencerdevs.xyz/movie/{id}', tv: 'https://spencerdevs.xyz/tv/{id}/{season}/{episode}' } },
+            { id: 'pstream', name: 'P-Stream', urls: { movie: 'https://iframe.pstream.org/embed/tmdb-movie-{id}', tv: 'https://iframe.pstream.org/embed/tmdb-tv-{id}/{season}/{episode}' } }
+        ];
+
+        let allContent = []; // Current content list displayed
+        let fullUnfilteredContent = []; // Full content list from the last API call
+        let selectedContent = null;
+        let tvDetails = null;
+        let isTheaterMode = false; 
+        let currentContentTypeFilter = 'movie'; // Default filter state (Updated from popular-movie)
+        
+        // Caching for TMDB Genre lists to avoid refetching
+        let cachedGenres = { movie: null, tv: null };
+
+        // DOM Elements
+        const contentListContainerEl = document.getElementById('content-list-container');
+        const contentSearchEl = document.getElementById('content-search');
+        const contentListEl = document.getElementById('content-list');
+        const rightPanelEl = document.getElementById('right-panel'); // Added for Theater Mode Padding control
+        const playerArea1El = document.getElementById('player-area-1');
+        const player1Iframe = document.getElementById('stream-player-1');
+        const playerMessageOverlayEl = document.getElementById('player-message-overlay'); // NEW
+        const playerStatusTextEl = document.getElementById('player-status-text'); 
+        const streamControls1El = document.getElementById('stream-controls-1');
+        const sourceSelector1El = document.getElementById('source-selector-1');
+        const theaterBtn = document.getElementById('toggle-theater-mode-btn');
+        const genreFilterEl = document.getElementById('genre-filter'); 
+        const yearFilterEl = document.getElementById('year-filter');   
+        // TV specific controls
+        const tvControlsEl = document.getElementById('tv-controls');
+        const seasonSelectorEl = document.getElementById('season-selector');
+        const episodeSelectorEl = document.getElementById('episode-selector');
+        const nextEpisodeBtn = document.getElementById('next-episode-btn');
+        const prevEpisodeBtn = document.getElementById('prev-episode-btn');
+        const leftPanelEl = document.getElementById('left-panel');
+        // Scroll Indicators
+        const scrollUpIndicatorEl = document.getElementById('scroll-up-indicator');
+        const scrollDownIndicatorEl = document.getElementById('scroll-down-indicator');
+
+
+        // --- Utility Functions (Modal, Fetch, etc.) ---
+
+        function showModal(title, message) {
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-message').textContent = message;
+            const modalEl = document.getElementById('modal');
+            modalEl.classList.remove('opacity-0', 'pointer-events-none');
+            modalEl.querySelector('div').classList.remove('-translate-y-5');
+        }
+
+        function hideModal() {
+            const modalEl = document.getElementById('modal');
+            modalEl.classList.add('opacity-0', 'pointer-events-none');
+            modalEl.querySelector('div').classList.add('-translate-y-5');
+        }
+
+        async function safeFetch(url) {
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return await response.json();
+            } catch (error) {
+                console.error("Fetch failed for URL:", url, error);
+                // Only show modal for API failures, not general TMDB data issues
+                if (!url.includes('/genre/')) { 
+                    showModal('Network Error', 'Could not fetch data from the API. Check your connection or the console for details.');
+                }
+                return null;
+            }
+        }
+
+        function getContentTitle(content) {
+            return content.title || content.name || 'Untitled Content';
+        }
+        
+        function getContentType(content) {
+            if (content.media_type) return content.media_type;
+            if (content.title) return 'movie';
+            if (content.name) return 'tv';
+            return 'movie'; // Defaulting to movie if uncertain
+        }
+        
+        // --- Player URL Generation (The Core Stream Logic) ---
+        
+        function getPlayerUrl(sourceId, tmdbId, contentType, season = 1, episode = 1) {
+            const source = availableSources.find(s => s.id === sourceId);
+            if (!source) return '';
+
+            let template = '';
+            if (contentType === 'movie') {
+                template = source.urls.movie;
+            } else if (contentType === 'tv') {
+                template = source.urls.tv;
+            } else {
+                return '';
+            }
+
+            return template
+                .replace('{id}', tmdbId)
+                .replace('{season}', season)
+                .replace('{episode}', episode);
+        }
+        
+        // UPDATED: Controls the overlay visibility
+        function loadStreamIntoPlayer(streamUrl, playerIframe) {
+            if (streamUrl) {
+                // Hide overlay and load stream
+                playerMessageOverlayEl.style.opacity = 0;
+                playerMessageOverlayEl.style.pointerEvents = 'none';
+                playerIframe.src = streamUrl;
+            } else {
+                // Show 'Select Content' message and clear iframe
+                playerMessageOverlayEl.style.opacity = 1;
+                playerMessageOverlayEl.style.pointerEvents = 'auto';
+                playerIframe.src = ''; 
+
+                // Reset overlay content to "Select Content" message
+                playerMessageOverlayEl.innerHTML = `
+                    <div class="space-y-4">
+                        <i data-lucide="monitor-play" class="w-12 h-12 text-netflix-red mx-auto"></i>
+                        <h3 class="text-2xl font-bold text-white">Select Content to Stream</h3>
+                        <p class="text-gray-400">Choose a movie or show from the list on the left to start.</p>
+                    </div>
+                `;
+                // Re-render Lucide icons for the message overlay
+                if (window.createIcons && window.MonitorPlay) {
+                    window.createIcons({ icons: { MonitorPlay: window.MonitorPlay } });
+                }
+            }
+        }
+
+        async function updatePlayerStatus(episodeDetails) {
+            let statusText = getContentTitle(selectedContent);
+
+            if (getContentType(selectedContent) === 'tv' && episodeDetails) {
+                const season = seasonSelectorEl.value || 1;
+                const episode = episodeSelectorEl.value || 1;
+                const episodeName = episodeDetails.name || `Episode ${episode}`;
+                
+                statusText = `${getContentTitle(selectedContent)} - S${season} E${episode}: ${episodeName}`;
+            }
+            
+            playerStatusTextEl.textContent = statusText;
+        }
+
+        async function updatePlayerFromSelection() {
+            if (!selectedContent) {
+                playerStatusTextEl.textContent = "Select Content to Start Streaming";
+                return;
+            }
+            
+            // Show loading state while fetching stream data
+            playerMessageOverlayEl.style.opacity = 1;
+            playerMessageOverlayEl.style.pointerEvents = 'auto';
+            playerMessageOverlayEl.innerHTML = `
+                <div class="space-y-4">
+                    <i data-lucide="loader" class="w-12 h-12 text-netflix-red mx-auto animate-spin"></i>
+                    <h3 class="text-2xl font-bold text-white">Loading Stream...</h3>
+                    <p class="text-gray-400">Fetching player source for ${getContentTitle(selectedContent)}.</p>
+                </div>
+            `;
+            // Re-render Lucide icons
+            if (window.createIcons && window.Loader) {
+                window.createIcons({ icons: { Loader: window.Loader } });
+            }
+
+            const sourceId = sourceSelector1El.value;
+            const contentType = getContentType(selectedContent);
+            const tmdbId = selectedContent.id;
+            let finalUrl = '';
+            let episodeDetails = null;
+
+            if (contentType === 'tv') {
+                const season = seasonSelectorEl.value || 1;
+                const episode = episodeSelectorEl.value || 1;
+                
+                // Fetch specific episode details for the status bar summary
+                const episodeUrl = `${TMDB_BASE_URL}/tv/${tmdbId}/season/${season}/episode/${episode}?api_key=${TMDB_API_KEY}`;
+                episodeDetails = await safeFetch(episodeUrl);
+
+                finalUrl = getPlayerUrl(sourceId, tmdbId, contentType, season, episode);
+
+            } else { // Movie
+                finalUrl = getPlayerUrl(sourceId, tmdbId, contentType);
+            }
+            
+            // This function now handles hiding the overlay if finalUrl is valid
+            loadStreamIntoPlayer(finalUrl, player1Iframe);
+            updatePlayerStatus(episodeDetails);
+        }
+
+        // --- TV Show Season/Episode Handlers & Nav (Unchanged) ---
+        
+        function getSeasonData(seasonNum) {
+            if (!tvDetails || !tvDetails.seasons) return null;
+            return tvDetails.seasons.find(s => s.season_number === seasonNum);
+        }
+
+        function updateEpisodeSelector() {
+            episodeSelectorEl.innerHTML = '';
+            
+            const selectedSeasonNumber = parseInt(seasonSelectorEl.value);
+            const selectedSeason = getSeasonData(selectedSeasonNumber);
+            
+            if (selectedSeason && selectedSeason.episode_count > 0) {
+                for (let i = 1; i <= selectedSeason.episode_count; i++) {
+                    const option = document.createElement('option');
+                    option.value = i;
+                    option.textContent = `E${i}`; // Cleaner label
+                    episodeSelectorEl.appendChild(option);
+                }
+            } else {
+                 const option = document.createElement('option');
+                 option.value = 1;
+                 option.textContent = 'E1';
+                 episodeSelectorEl.appendChild(option);
+            }
+            
+            // Trigger stream update after episode selection changes
+            updatePlayerFromSelection();
+        }
+
+        function updateSeasonSelector() {
+            seasonSelectorEl.innerHTML = '';
+            tvDetails = tvDetails || {};
+            
+            if (tvDetails.seasons) {
+                const validSeasons = tvDetails.seasons.filter(s => s.season_number > 0 && s.episode_count > 0);
+                
+                if (validSeasons.length === 0) {
+                    tvControlsEl.style.display = 'none';
+                    return;
+                }
+
+                validSeasons.sort((a, b) => a.season_number - b.season_number);
+                
+                validSeasons.forEach((season) => {
+                    const option = document.createElement('option');
+                    option.value = season.season_number;
+                    option.textContent = `S${season.season_number}`; // Cleaner label
+                    seasonSelectorEl.appendChild(option);
+                });
+                
+                // Set default to S1 or first valid season
+                const defaultSeason = validSeasons[0].season_number;
+                seasonSelectorEl.value = defaultSeason;
+            }
+
+            seasonSelectorEl.onchange = updateEpisodeSelector;
+            // Now populate episodes for the initial season
+            updateEpisodeSelector();
+        }
+
+        function handleEpisodeNavigation(direction) {
+            if (!selectedContent || getContentType(selectedContent) !== 'tv') return;
+
+            let currentSeason = parseInt(seasonSelectorEl.value);
+            let currentEpisode = parseInt(episodeSelectorEl.value);
+            
+            let nextSeason = currentSeason;
+            let nextEpisode = currentEpisode;
+            let currentSeasonData = getSeasonData(currentSeason);
+
+            if (!currentSeasonData) return;
+
+            if (direction === 'next') {
+                nextEpisode += 1;
+                if (nextEpisode > currentSeasonData.episode_count) {
+                    // Try to move to the next season
+                    const validSeasons = tvDetails.seasons
+                        .filter(s => s.season_number > currentSeason && s.episode_count > 0)
+                        .sort((a, b) => a.season_number - b.season_number);
+
+                    if (validSeasons.length > 0) {
+                        nextSeason = validSeasons[0].season_number;
+                        nextEpisode = 1;
+                    } else {
+                        showModal('End of Series/Season', `You have reached the end of Season ${currentSeason} or the last known season.`);
+                        return;
+                    }
+                }
+            } else if (direction === 'prev') {
+                nextEpisode -= 1;
+                if (nextEpisode < 1) {
+                    // Try to move to the previous season
+                    const validSeasons = tvDetails.seasons
+                        .filter(s => s.season_number < currentSeason && s.episode_count > 0)
+                        .sort((a, b) => b.season_number - a.season_number); // Descending order
+
+                    if (validSeasons.length > 0) {
+                        nextSeason = validSeasons[0].season_number;
+                        const prevSeasonData = getSeasonData(nextSeason);
+                        nextEpisode = prevSeasonData ? prevSeasonData.episode_count : 1; 
+                    } else {
+                        showModal('Start of Series/Season', `You are already at the first episode of Season ${currentSeason}.`);
+                        return; 
+                    }
+                }
+            }
+
+            // Update selectors and trigger stream load
+            seasonSelectorEl.value = nextSeason;
+            // Rerun episode selector update if season changed, otherwise just set episode value
+            if (nextSeason !== currentSeason) {
+                updateEpisodeSelector(); // This will also call updatePlayerFromSelection
+            } else {
+                episodeSelectorEl.value = nextEpisode; 
+                updatePlayerFromSelection();
+            }
+        }
+        
+        async function loadContentDetails(content) {
+            selectedContent = content;
+            playerStatusTextEl.textContent = `Loading Stream for ${getContentTitle(content)}...`;
+            
+            const contentType = getContentType(content);
+            tvDetails = null;
+            tvControlsEl.style.display = 'none';
+
+            // Ensure controls are visible now that content is selected
+            streamControls1El.style.display = 'flex'; 
+
+            if (contentType === 'tv') {
+                const tvId = content.id;
+                const detailsUrl = `${TMDB_BASE_URL}/tv/${tvId}?api_key=${TMDB_API_KEY}`;
+                tvDetails = await safeFetch(detailsUrl);
+                
+                if (tvDetails) {
+                    tvControlsEl.style.display = 'flex';
+                    updateSeasonSelector(); // This initiates the first stream load for TV
+                } else {
+                    // Fallback to updatePlayerFromSelection to load the stream with default S1 E1
+                    updatePlayerFromSelection();
+                }
+            } else {
+                updatePlayerFromSelection();
+            }
+        }
+        
+        // --- Source Selector Setup (Unchanged) ---
+        
+        function populateSourceSelector() {
+            sourceSelector1El.innerHTML = '';
+            availableSources.forEach((source) => {
+                const option = document.createElement('option');
+                option.value = source.id;
+                option.textContent = source.name;
+                sourceSelector1El.appendChild(option);
+            });
+            sourceSelector1El.onchange = updatePlayerFromSelection;
+        }
+
+        // --- Content List Logic (Unchanged) ---
+        
+        function selectContent(content) {
+            selectedContent = content;
+            
+            // Highlight the clicked item
+            highlightSelectedContent(content.id);
+            
+            // Initiate the load process (details fetch for TV, stream load for movie)
+            loadContentDetails(selectedContent);
+        }
+        
+        function handleContentClick(content, itemId) {
+            selectContent(content); 
+        }
+
+        function highlightSelectedContent(contentId) {
+            const contentItems = contentListEl.querySelectorAll('.content-item');
+            contentItems.forEach((item) => {
+                const isSelected = item.dataset.id == contentId;
+                if (isSelected) {
+                    item.classList.add('border-netflix-red', 'ring-2', 'ring-netflix-red');
+                    item.classList.remove('border-gray-700', 'hover:bg-netflix-light');
+                    item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                } else {
+                    item.classList.remove('border-netflix-red', 'ring-2', 'ring-netflix-red');
+                    item.classList.add('border-gray-700', 'hover:bg-netflix-light');
+                }
+            });
+        }
+        
+        function renderContentItem(content) {
+            const contentEl = document.createElement('div');
+            // Check if media_type is set for the lucide icon
+            const type = getContentType(content);
+            const typeIcon = type === 'movie' ? 'film' : 'tv';
+            
+            // Re-use ID for reliable lookup (needed for click handler)
+            contentEl.className = 'content-item cursor-pointer bg-netflix-medium hover:bg-netflix-light transition p-3 rounded-lg border-2 border-gray-700 shadow-xl';
+            contentEl.dataset.id = content.id; 
+            
+            const title = getContentTitle(content);
+            const posterPath = content.poster_path;
+            const posterUrl = posterPath ? `${IMAGE_BASE_URL}${posterPath}` : FALLBACK_POSTER_URL;
+            const voteAverage = content.vote_average ? content.vote_average.toFixed(1) : 'N/A';
+            const releaseDate = content.release_date || content.first_air_date || 'N/A';
+            const year = releaseDate.split('-')[0];
+            
+
+            contentEl.innerHTML = `
+                <div class="flex items-center space-x-3 h-full text-white">
+                    <div class="flex-shrink-0 w-16 h-24 overflow-hidden rounded-md border border-gray-600 shadow-lg">
+                        <img src="${posterUrl}" onerror="this.src='${FALLBACK_POSTER_URL}'" alt="${title} Poster" class="w-full h-full object-cover">
+                    </div>
+                    <div class="flex flex-col justify-between h-full py-1 min-w-0 flex-grow">
+                        <h3 class="font-bold text-base text-white leading-tight truncate">${title}</h3>
+                        <div class="flex items-center space-x-3 text-xs text-gray-400 font-medium">
+                            <span class="flex items-center space-x-1">
+                                <i data-lucide="${typeIcon}" class="w-3 h-3 text-netflix-red"></i>
+                                <span>${type.toUpperCase()}</span>
+                            </span>
+                            <span class="text-white">•</span>
+                            <span>${year}</span>
+                            <span class="text-white">•</span>
+                            <span class="font-extrabold text-yellow-400">★ ${voteAverage}</span>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-1 line-clamp-2">${content.overview || 'No overview available.'}</p>
+                    </div>
+                </div>
+            `;
+            
+            contentEl.querySelectorAll('i[data-lucide]').forEach(el => {
+                // Ensure icons are rendered correctly after injection
+                if (window.createIcons && window.Film && window.Tv) {
+                    window.createIcons({ icons: { Film: window.Film, Tv: window.Tv } });
+                }
+            });
+            
+            contentEl.addEventListener('click', () => handleContentClick(content));
+            return contentEl;
+        }
+
+        function renderContent(contentItems) {
+            allContent = contentItems;
+            contentListEl.innerHTML = '';
+            
+            // Reset player state (Click-to-Load Mandate)
+            streamControls1El.style.display = 'none'; 
+            loadStreamIntoPlayer('', player1Iframe); // Use new function to reset player/show message
+            playerStatusTextEl.textContent = 'Select Content to Start Streaming';
+            selectedContent = null;
+            tvDetails = null;
+            tvControlsEl.style.display = 'none';
+
+
+            if (contentItems.length === 0) {
+                contentListEl.innerHTML = '<p class="text-center text-gray-500 p-8 text-lg">No content found matching your filters/search. Try a different combination.</p>';
+                fullUnfilteredContent = [];
+            } else {
+                contentItems.forEach((content) => {
+                    contentListEl.appendChild(renderContentItem(content));
+                });
+            }
+            
+            // Re-render Lucide icons for newly added elements
+            if (window.createIcons) {
+                window.createIcons({ icons: { Film: window.Film, Tv: window.Tv } });
+            }
+
+            // Update scroll indicators after new content is rendered
+            setTimeout(updateScrollIndicators, 100); 
+        }
+
+        // --- Scroll Indicator Logic (Unchanged) ---
+
+        function updateScrollIndicators() {
+            if (!contentListContainerEl || !scrollUpIndicatorEl || !scrollDownIndicatorEl) return;
+            
+            const { scrollTop, scrollHeight, clientHeight } = contentListContainerEl;
+            
+            // Up Indicator: Show if we are scrolled down at all (10px buffer)
+            if (scrollTop > 10) {
+                scrollUpIndicatorEl.classList.add('visible');
+            } else {
+                scrollUpIndicatorEl.classList.remove('visible');
+            }
+
+            // Down Indicator: Show if there is more content below (10px buffer)
+            const isScrolledToBottom = (scrollHeight - scrollTop - clientHeight) < 10;
+            if (scrollHeight > clientHeight && !isScrolledToBottom) {
+                scrollDownIndicatorEl.classList.add('visible');
+            } else {
+                scrollDownIndicatorEl.classList.remove('visible');
+            }
+        }
+
+        // --- Genre and Year Filter Logic (Unchanged) ---
+
+        function populateYearFilter() {
+            const currentYear = new Date().getFullYear();
+            // Populate years from current year back 15 years
+            for (let i = 0; i < 15; i++) { 
+                const year = currentYear - i;
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                yearFilterEl.appendChild(option);
+            }
+        }
+
+        async function fetchAndPopulateGenres() {
+            // Fetch genre lists for both content types
+            const movieGenres = await safeFetch(`${TMDB_BASE_URL}/genre/movie/list?api_key=${TMDB_API_KEY}`);
+            const tvGenres = await safeFetch(`${TMDB_BASE_URL}/genre/tv/list?api_key=${TMDB_API_KEY}`);
+            
+            cachedGenres.movie = movieGenres?.genres || [];
+            cachedGenres.tv = tvGenres?.genres || [];
+
+            // Combine unique genre names across both types for the dropdown display
+            const genreNames = new Set();
+            cachedGenres.movie.forEach(g => genreNames.add(g.name));
+            cachedGenres.tv.forEach(g => genreNames.add(g.name));
+            
+            // Clear existing options except "All Genres" placeholder
+            genreFilterEl.innerHTML = '<option value="">All Genres</option>';
+            
+            const sortedGenreNames = Array.from(genreNames).sort();
+            sortedGenreNames.forEach(name => {
+                const option = document.createElement('option');
+                option.value = name; 
+                option.textContent = name;
+                genreFilterEl.appendChild(option);
+            });
+        }
+        
+        // --- Content Toggle & Fetch Logic (Unchanged) ---
+
+        async function fetchContent() {
+            contentListEl.innerHTML = `
+                <div class="animate-pulse space-y-3">
+                    <div class="bg-netflix-light rounded-lg h-24"></div>
+                    <div class="bg-netflix-light rounded-lg h-24"></div>
+                    <div class="bg-netflix-light rounded-lg h-24"></div>
+                </div>
+            `;
+            
+            const type = currentContentTypeFilter;
+            const search = contentSearchEl.value.trim();
+            const genreName = genreFilterEl.value;
+            const year = yearFilterEl.value;
+
+            let url = '';
+            let params = `api_key=${TMDB_API_KEY}&language=en-US&page=1`;
+
+            if (search) {
+                // 1. Use Search API if there's a search term
+                url = `${TMDB_BASE_URL}/search/${type}`;
+                params += `&query=${encodeURIComponent(search)}`;
+                // Note: TMDB search does not filter by genre/year, so we rely on the query alone
+            } else if (genreName || year) {
+                // 2. Use Discover API for genre/year filtering
+                url = `${TMDB_BASE_URL}/discover/${type}`;
+                
+                if (genreName) {
+                    // Find the correct genre ID for the selected content type
+                    const selectedGenreData = cachedGenres[type].find(g => g.name === genreName);
+                    if (selectedGenreData) {
+                         params += `&with_genres=${selectedGenreData.id}`;
+                    }
+                }
+
+                if (year) {
+                    if (type === 'movie') {
+                        params += `&primary_release_year=${year}`;
+                    } else { // tv
+                        params += `&first_air_date_year=${year}`;
+                    }
+                }
+                // Add sorting for discover for a better list
+                params += '&sort_by=popularity.desc';
+                
+            } else {
+                // 3. Default: Popular list
+                url = `${TMDB_BASE_URL}/${type}/popular`;
+            }
+            
+            const finalUrl = `${url}?${params}`;
+            
+            const data = await safeFetch(finalUrl);
+            
+            if (data && Array.isArray(data.results)) {
+                fullUnfilteredContent = data.results.map(item => ({
+                    ...item,
+                    media_type: item.media_type || type
+                }));
+                // Only clear search bar if filters change, not when search is being typed
+                // But since we trigger fetchContent on all changes, let's keep it simple: just render
+                renderContent(fullUnfilteredContent);
+            } else {
+                contentListEl.innerHTML = '<p class="text-center text-red-400 p-4">No content found matching the criteria.</p>';
+                fullUnfilteredContent = [];
+            }
+        }
+        
+        function handleContentToggle(newType) {
+            // Update internal state
+            currentContentTypeFilter = newType;
+
+            // Update button styling
+            const buttons = document.querySelectorAll('.content-toggle-btn');
+            buttons.forEach(btn => {
+                if (btn.dataset.type === newType) {
+                    btn.classList.add('bg-netflix-red', 'text-white', 'shadow-md');
+                    btn.classList.remove('text-gray-300', 'hover:bg-red-900/50');
+                    btn.setAttribute('aria-pressed', 'true');
+                } else {
+                    btn.classList.remove('bg-netflix-red', 'text-white', 'shadow-md');
+                    btn.classList.add('text-gray-300', 'hover:bg-red-900/50');
+                    btn.setAttribute('aria-pressed', 'false');
+                }
+            });
+
+            // Reset genre/year filter selection (but not the search bar) when switching content type
+            genreFilterEl.value = '';
+            yearFilterEl.value = '';
+
+            // Fetch new content based on new type
+            fetchContent();
+        }
+
+        function handleSearchOrFilterChange() {
+            // Trigger the main fetch function to load new data based on all inputs
+            fetchContent();
+        }
+        
+        // --- Theater Mode Logic (UPDATED for better immersion) ---
+        
+        function showOverlayControls() {
+            if (isTheaterMode) {
+                streamControls1El.classList.add('overlay-visible');
+            }
+        }
+
+        function hideOverlayControls() {
+            if (isTheaterMode) {
+                streamControls1El.classList.remove('overlay-visible');
+            }
+        }
+
+        let mobileOverlayTimer = null;
+        function handleTouchShowOverlay() {
+            showOverlayControls();
+            if (mobileOverlayTimer) clearTimeout(mobileOverlayTimer);
+            // Hide after 3 seconds of inactivity on touch devices
+            mobileOverlayTimer = setTimeout(hideOverlayControls, 3000); 
+        }
+
+        window.toggleTheaterMode = function() {
+            if (!selectedContent) {
+                showModal('Cannot Enter Theater Mode', 'Please select a piece of content first before toggling Theater Mode.');
+                return;
+            }
+            
+            isTheaterMode = !isTheaterMode;
+
+            // Define original classes for restoration
+            const originalLeftClasses = ['w-[30%]', 'min-w-[320px]', 'p-4', 'border-r', 'border-gray-800'];
+            // Define classes for collapse
+            const collapseLeftClasses = ['w-0', 'min-w-0', 'p-0', 'border-0', 'overflow-hidden'];
+            
+            if (isTheaterMode) {
+                // --- ENTER THEATER MODE ---
+                // Collapse Left Panel
+                leftPanelEl.classList.add(...collapseLeftClasses);
+                leftPanelEl.classList.remove(...originalLeftClasses);
+                theaterBtn.textContent = 'Exit Theater Mode';
+                
+                // NEW: Remove padding from right panel for full immersion
+                rightPanelEl.classList.add('full-immersion-right');
+                
+                // STRETCH PLAYER
+                player1Iframe.classList.add('theater-iframe-stretch');
+                playerArea1El.classList.remove('justify-center', 'items-center');
+
+                // Transform Controls to Overlay
+                streamControls1El.classList.add('overlay-controls', 'flex');
+                streamControls1El.classList.remove('flex-col', 'sm:flex-row');
+
+                // Add hover/touch listeners for visibility
+                playerArea1El.addEventListener('mouseenter', showOverlayControls);
+                playerArea1El.addEventListener('mouseleave', hideOverlayControls);
+                playerArea1El.addEventListener('touchstart', handleTouchShowOverlay); 
+
+            } else {
+                // --- EXIT THEATER MODE ---
+                // Restore Left Panel
+                leftPanelEl.classList.add(...originalLeftClasses);
+                leftPanelEl.classList.remove(...collapseLeftClasses);
+                theaterBtn.textContent = 'Theater Mode';
+                
+                // NEW: Restore padding to right panel
+                rightPanelEl.classList.remove('full-immersion-right');
+
+                // SHRINK PLAYER
+                player1Iframe.classList.remove('theater-iframe-stretch');
+                playerArea1El.classList.add('justify-center', 'items-center');
+                
+                // Restore Controls to Normal (Below Player)
+                streamControls1El.classList.remove('overlay-controls', 'overlay-visible');
+                streamControls1El.classList.add('flex-col', 'sm:flex-row');
+
+                // Remove listeners
+                playerArea1El.removeEventListener('mouseenter', showOverlayControls);
+                playerArea1El.removeEventListener('mouseleave', hideOverlayControls);
+                playerArea1El.removeEventListener('touchstart', handleTouchShowOverlay);
+            }
+        }
+        
+        // --- Initialization ---
+        window.onload = function() {
+            // 1. Populate the list of available stream sources
+            populateSourceSelector();
+
+            // 2. Populate Filters
+            populateYearFilter();
+            fetchAndPopulateGenres();
+            
+            // 3. Attach Content Type Toggle and Search handlers
+            contentSearchEl.addEventListener('input', handleSearchOrFilterChange);
+            genreFilterEl.addEventListener('change', handleSearchOrFilterChange);
+            yearFilterEl.addEventListener('change', handleSearchOrFilterChange);
+            
+            document.querySelectorAll('.content-toggle-btn').forEach(button => {
+                button.addEventListener('click', (e) => handleContentToggle(e.currentTarget.dataset.type));
+            });
+            
+            // 4. Load default (Movies) content 
+            handleContentToggle(currentContentTypeFilter); // This calls fetchContent initially
+            
+            // 5. Attach TV control handlers
+            episodeSelectorEl.addEventListener('change', updatePlayerFromSelection);
+            nextEpisodeBtn.addEventListener('click', () => handleEpisodeNavigation('next'));
+            prevEpisodeBtn.addEventListener('click', () => handleEpisodeNavigation('prev'));
+
+            // 6. Attach scroll indicator logic
+            contentListContainerEl.addEventListener('scroll', updateScrollIndicators);
+            updateScrollIndicators(); 
+        };
+        
+        // Expose functions for buttons
+        window.hideModal = hideModal;
+    </script>
+</body>
+</html>
+
