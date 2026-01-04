@@ -3,318 +3,822 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stream Hub TV | Cinematic Experience</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <title>LiveSports</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
+        // Custom Tailwind config for Netflix colors
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: { sans: ['Outfit', 'sans-serif'] },
                     colors: {
-                        'tv-bg': '#05070a',
-                        'tv-surface': '#11141d',
-                        'tv-accent': '#4f46e5',
-                        'tv-gold': '#fbbf24',
+                        'netflix-red': '#E50914', // Vibrant Netflix Red
+                        'netflix-dark': '#0f0f0f', // Deepest background
+                        'netflix-medium': '#1c1c1c', // Header, List background
+                        'netflix-light': '#2c2c2c', // Card/Player background
                     }
                 }
             }
         }
     </script>
+    <!-- Load Lucide icons for D-pad/controls and Theater Mode -->
+    <script type="module">
+        // Import all necessary icons for initial rendering and later manual use
+        import { createIcons, ChevronUp, ChevronDown, Maximize, Minimize } from 'https://unpkg.com/lucide@latest';
+        createIcons({ icons: { ChevronUp, ChevronDown, Maximize, Minimize } });
+    </script>
     <style>
-        body { background-color: #05070a; color: #ffffff; overflow-x: hidden; }
+        /* Custom styles for Netflix dark theme and landscape responsiveness */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f0f0f; /* Deep dark grey/black for background */
+            color: #e4e4e7;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* The height is now controlled by the h-[calc(100vh-4rem)] class on the div itself */
+        #main-content-area {
+            /* Ensure the main area is also a flex container for the panels */
+            display: flex;
+        }
         
-        /* Cinematic Backdrop */
-        #dynamicBackdrop {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            z-index: -1;
-            transition: opacity 0.8s ease-in-out;
-            opacity: 0.4;
-            filter: blur(60px) brightness(0.3);
-            transform: scale(1.1);
+        /* Match list container for scrolling, takes full height available in flex column */
+        #match-list-container {
+            overflow-y: auto;
+            /* Added h-full to make the container take up the full available height for vertical centering of D-Pad */
+            height: 100%; 
+            flex-grow: 1;
+        }
+        
+        /* Custom scrollbar for dark theme */
+        #match-list-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        #match-list-container::-webkit-scrollbar-thumb {
+            background-color: '#550000'; /* Dark red/maroon for scrollbar */
+            border-radius: 3px;
+        }
+        #match-list-container::-webkit-scrollbar-track {
+            background: #1a1a1a;
         }
 
-        .tv-glass { 
-            background: rgba(17, 20, 29, 0.7); 
-            backdrop-filter: blur(20px); 
-            border-bottom: 1px solid rgba(255,255,255,0.05); 
+        /* Iframe height constraint */
+        .player-iframe {
+            height: 300px;
+            max-width: 100%;
+            margin: auto;
         }
 
-        /* TV Focused Card Effect */
-        .media-card {
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            outline: 4px solid transparent;
+        /* Styling for the TV-like dropdown and search */
+        #sport-selector, #match-search {
+            background-color: #1c1c1c; /* netflix-medium */
+            border: 1px solid #4a0000; /* Dark red border */
+            color: #e4e4e7;
+            /* Resetting appearance for selector */
+            appearance: none;
         }
-        .media-card:hover {
-            transform: scale(1.1);
-            z-index: 30;
-            outline-color: #4f46e5;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+        
+        #sport-selector {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
         }
-
-        /* Custom Scrollbar for Leanback Experience */
-        ::-webkit-scrollbar { height: 6px; width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #4f46e5; }
-
-        .line-clamp-3 {
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-
-        /* Video Player Fullscreen Overlay */
-        #playerOverlay {
-            position: fixed;
-            inset: 0;
-            background: #000;
-            z-index: 100;
-            display: none;
-            flex-direction: column;
-        }
-
-        .sidebar-item.active {
-            background-color: #4f46e5;
-            color: white;
+        
+        /* Mobile layout adjustments */
+        @media (max-width: 768px) {
+            #main-content-area {
+                flex-direction: column;
+                height: auto; /* Allow height to expand on mobile */
+            }
+            #left-panel {
+                width: 100% !important; /* Important to override w-[30%] in theater mode exit */
+                min-width: 100%;
+                border-right: none;
+                border-bottom: 1px solid #333;
+            }
+            .player-iframe {
+                height: 200px; /* Smaller player on mobile */
+            }
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col font-sans antialiased pb-20">
+<body class="min-h-screen">
 
-    <div id="dynamicBackdrop"></div>
-
-    <!-- Top Navigation Optimized for TV -->
-    <header class="sticky top-0 z-50 tv-glass">
-        <div class="container mx-auto px-10 h-28 flex items-center justify-between">
-            <div class="flex items-center gap-6">
-                <div class="p-3 bg-tv-accent rounded-2xl shadow-xl">
-                    <svg class="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z"></path></svg>
-                </div>
-                <h1 class="text-5xl font-extrabold tracking-tighter">STREAM<span class="text-tv-accent">HUB</span></h1>
-                
-                <nav class="flex gap-8 ml-12 items-center">
-                    <button id="btnMovies" class="text-2xl font-semibold opacity-100 hover:text-tv-accent transition-colors">Movies</button>
-                    <button id="btnTV" class="text-2xl font-semibold opacity-50 hover:text-tv-accent transition-colors">TV Shows</button>
-                </nav>
+    <!-- Header (Netflix Black/Red) -->
+    <header class="h-16 bg-netflix-medium flex items-center px-6 shadow-xl z-10 sticky top-0 border-b border-red-800">
+        <!-- 1. Left: Logo (Given a minimum width for balance) -->
+        <h1 class="text-2xl font-bold text-netflix-red min-w-[120px]">LiveSports</h1>
+        
+        <!-- 2. Center: Status Text (Uses flex-grow to take up all available center space and centers its content) -->
+        <div id="status-container" class="flex-grow flex items-center justify-center min-w-0">
+            <div class="inline-flex items-center space-x-2 px-6">
+                <!-- Icon to indicate streaming, hidden on tiny screens -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E50914" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden sm:block lucide lucide-zap shrink-0"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                <!-- Status Text - Full width, no truncate -->
+                <span id="player-status-text" class="text-lg sm:text-xl font-bold text-white block transition duration-200">
+                    Select a Match to Start Streaming
+                </span>
             </div>
-
-            <div class="flex items-center gap-6 flex-1 max-w-xl mx-12">
-                <div class="relative w-full">
-                    <input type="text" id="searchInput" placeholder="Search for titles..." class="w-full bg-white/5 border-2 border-white/10 rounded-2xl py-4 px-8 text-xl focus:border-tv-accent outline-none transition-all placeholder:text-gray-500">
-                    <svg class="w-6 h-6 absolute right-6 top-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                </div>
-            </div>
-
-            <div class="flex items-center gap-4">
-                <div id="currentTime" class="text-3xl font-light opacity-60">12:00 PM</div>
-            </div>
+        </div>
+        
+        <!-- 3. Right: Theater Mode Button (Replacing the old spacer) -->
+        <div class="ml-auto min-w-[120px] flex justify-end">
+            <button id="theater-mode-btn" onclick="toggleTheaterMode()" class="bg-netflix-red hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg text-sm transition transform hover:scale-105 flex items-center space-x-2 shadow-lg">
+                <i data-lucide="maximize" class="w-5 h-5"></i>
+                <span class="hidden sm:inline">Theater Mode</span>
+            </button>
         </div>
     </header>
 
-    <!-- Main Content Area -->
-    <main class="flex-1 container mx-auto px-10 pt-10">
-        
-        <!-- Featured Hero Section -->
-        <section id="heroSection" class="relative h-[55vh] rounded-[3rem] overflow-hidden mb-16 shadow-2xl group cursor-pointer">
-            <div id="heroContent" class="absolute inset-0 z-20 flex flex-col justify-end p-16 bg-gradient-to-t from-tv-bg via-tv-bg/20 to-transparent">
-                <div id="heroMeta" class="flex items-center gap-4 mb-4">
-                    <span class="bg-tv-accent px-4 py-1 rounded-lg text-sm font-bold tracking-widest uppercase">Featured</span>
-                    <span id="heroRating" class="text-tv-gold font-bold text-xl">★ 8.5</span>
-                </div>
-                <h2 id="heroTitle" class="text-7xl font-black mb-6 leading-none">Loading Title...</h2>
-                <p id="heroDesc" class="text-2xl text-gray-300 max-w-3xl mb-8 line-clamp-3 font-medium leading-relaxed"></p>
-                <div class="flex gap-4">
-                    <button id="heroPlayBtn" class="bg-white text-black px-12 py-5 rounded-2xl text-2xl font-bold flex items-center gap-3 hover:scale-105 transition-transform">
-                        <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20"><path d="M4.5 3.5a.5.5 0 00-.5.5v12a.5.5 0 00.763.429l11-6a.5.5 0 000-.858l-11-6a.5.5 0 00-.263-.071z"></path></svg>
-                        Play Now
-                    </button>
-                </div>
-            </div>
-            <img id="heroImage" src="" class="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110">
-        </section>
+    <!-- Main Content Grid. Added transition and h-[calc(100vh-4rem)] for fluid layout toggling. -->
+    <div id="main-content-area" class="flex transition-all duration-300 h-[calc(100vh-4rem)]">
 
-        <!-- Dynamic Content Rows -->
-        <div class="space-y-16">
-            <div>
-                <h3 id="rowTitle" class="text-4xl font-bold mb-8 flex items-center gap-4">
-                    Trending Now
-                    <div class="h-1 w-24 bg-tv-accent rounded-full"></div>
-                </h3>
-                <div id="contentGrid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-8">
-                    <!-- Cards will be injected here -->
+        <!-- 1. Left Panel (Match List & Selector) -->
+        <div id="left-panel" class="w-[30%] min-w-[320px] bg-netflix-medium p-4 flex flex-col space-y-4 border-r border-gray-800 transition-all duration-300 flex-shrink-0">
+            
+            <!-- Sport Selector and Search Bar in a single flex container -->
+            <div id="controls-container" class="space-y-3">
+                <p class="text-sm text-gray-400">Filter Matches:</p>
+                <div class="flex space-x-3">
+                    <div class="w-1/2">
+                        <select id="sport-selector" class="w-full p-2.5 rounded-lg focus:ring-netflix-red focus:border-netflix-red transition cursor-pointer">
+                            <option value="live">Live Matches</option>
+                            <!-- Sport options will be inserted here -->
+                        </select>
+                    </div>
+                    
+                    <div class="w-1/2">
+                        <input type="text" id="match-search" placeholder="Search…" 
+                               class="w-full p-2.5 rounded-lg bg-netflix-medium border border-gray-700 focus:ring-netflix-red focus:border-netflix-red text-white transition placeholder-gray-500 shadow-inner">
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Pagination -->
-        <div class="flex justify-center py-20">
-            <button id="loadMore" class="bg-tv-surface border-2 border-white/5 hover:border-tv-accent px-20 py-6 rounded-3xl text-2xl font-bold transition-all">
-                Discover More
-            </button>
-        </div>
-    </main>
+            <!-- Match List and D-Pad Container (Updated to use relative/absolute positioning for sticky buttons) -->
+            <div class="relative flex-grow flex overflow-hidden">
+                <!-- Match List Container (Takes most of the width and scrolls) -->
+                <div id="match-list-container" class="flex-grow space-y-4 pr-10 h-full">
+                    <!-- Loading State / Match List will be rendered here -->
+                    <div id="match-list" class="space-y-3">
+                        <!-- Updated loading pulse to match the new card shape -->
+                        <div class="animate-pulse bg-netflix-light rounded-lg h-24"></div>
+                        <div class="animate-pulse bg-netflix-light rounded-lg h-24"></div>
+                        <div class="animate-pulse bg-netflix-light rounded-lg h-24"></div>
+                    </div>
+                </div>
 
-    <!-- Player Overlay -->
-    <div id="playerOverlay">
-        <div class="absolute top-10 left-10 z-[110] flex items-center gap-6">
-            <button id="closePlayer" class="bg-white/10 hover:bg-white/20 p-5 rounded-full backdrop-blur-xl border border-white/20">
-                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"></path></svg>
-            </button>
-            <h4 id="playingTitle" class="text-3xl font-bold">Watching...</h4>
-        </div>
-        <iframe id="mainPlayer" class="w-full h-full" allowfullscreen frameborder="0"></iframe>
-    </div>
-
-    <script>
-        const API_KEY = '1070730380f5fee0d87cf0382670b255';
-        const BASE_URL = 'https://api.themoviedb.org/3';
-        const IMG_URL = 'https://image.tmdb.org/t/p/original';
-        const POSTER_URL = 'https://image.tmdb.org/t/p/w500';
-        const PLAYER_BASE = '/movie4/no-main/watch.html';
-
-        let currentMode = 'movie';
-        let currentPage = 1;
-        let activeQuery = '';
-
-        // UI Elements
-        const grid = document.getElementById('contentGrid');
-        const heroTitle = document.getElementById('heroTitle');
-        const heroDesc = document.getElementById('heroDesc');
-        const heroImage = document.getElementById('heroImage');
-        const heroRating = document.getElementById('heroRating');
-        const backdrop = document.getElementById('dynamicBackdrop');
-        const playerOverlay = document.getElementById('playerOverlay');
-        const mainPlayer = document.getElementById('mainPlayer');
-        const playingTitle = document.getElementById('playingTitle');
-
-        // Clock Update
-        function updateClock() {
-            const now = new Date();
-            document.getElementById('currentTime').textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        }
-        setInterval(updateClock, 1000);
-        updateClock();
-
-        async function fetchTrending() {
-            const res = await fetch(`${BASE_URL}/trending/${currentMode}/week?api_key=${API_KEY}`);
-            const data = await res.json();
-            const featured = data.results[0];
-            updateHero(featured);
-            renderGrid(data.results.slice(1), false);
-        }
-
-        function updateHero(item) {
-            const title = item.title || item.name;
-            heroTitle.textContent = title;
-            heroDesc.textContent = item.overview;
-            heroImage.src = IMG_URL + item.backdrop_path;
-            heroRating.textContent = `★ ${item.vote_average.toFixed(1)}`;
-            backdrop.style.backgroundImage = `url(${IMG_URL + item.backdrop_path})`;
-            backdrop.style.backgroundSize = 'cover';
-            
-            document.getElementById('heroPlayBtn').onclick = () => playMedia(item.id, title);
-        }
-
-        async function fetchContent(append = false) {
-            let url = activeQuery 
-                ? `${BASE_URL}/search/${currentMode}?api_key=${API_KEY}&query=${activeQuery}&page=${currentPage}`
-                : `${BASE_URL}/discover/${currentMode}?api_key=${API_KEY}&sort_by=popularity.desc&page=${currentPage}`;
-            
-            const res = await fetch(url);
-            const data = await res.json();
-            renderGrid(data.results, append);
-        }
-
-        function renderGrid(items, append) {
-            if (!append) grid.innerHTML = '';
-            
-            items.forEach(item => {
-                if (!item.poster_path) return;
-                
-                const card = document.createElement('div');
-                card.className = 'media-card bg-tv-surface rounded-3xl overflow-hidden cursor-pointer';
-                const title = item.title || item.name;
-                
-                card.innerHTML = `
-                    <div class="relative aspect-[2/3]">
-                        <img src="${POSTER_URL}${item.poster_path}" class="w-full h-full object-cover">
-                        <div class="absolute bottom-4 right-4 bg-black/60 backdrop-blur-md px-3 py-1 rounded-xl border border-white/10 text-lg font-bold">
-                            ★ ${item.vote_average.toFixed(1)}
+                <!-- Sticky D-Pad Navigation Wrapper (Absolute positioning, full height, right edge) -->
+                <div id="d-pad-wrapper" class="absolute right-0 top-0 bottom-0 flex-shrink-0 hidden md:block py-4">
+                    <!-- Inner container uses flex column and justify-between to push up/down -->
+                    <div class="h-full flex flex-col justify-between items-center">
+                        <!-- UP Button at the top, wrapped for styling -->
+                        <div class="bg-netflix-light p-2 rounded-xl shadow-lg border border-red-700">
+                            <button id="nav-up" class="p-2 bg-netflix-red hover:bg-red-700 rounded-full transition duration-150 transform hover:scale-105 shadow-md">
+                                <i data-lucide="chevron-up" class="w-5 h-5 text-white"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- DOWN Button at the bottom, wrapped for styling -->
+                        <div class="bg-netflix-light p-2 rounded-xl shadow-lg border border-red-700">
+                            <button id="nav-down" class="p-2 bg-netflix-red hover:bg-red-700 rounded-full transition duration-150 transform hover:scale-105 shadow-md">
+                                <i data-lucide="chevron-down" class="w-5 h-5 text-white"></i>
+                            </button>
                         </div>
                     </div>
-                    <div class="p-6">
-                        <h4 class="text-xl font-bold truncate">${title}</h4>
-                        <p class="text-gray-500 text-lg">${(item.release_date || item.first_air_date || '').split('-')[0]}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Right Panel (Players) -->
+        <div id="right-panel" class="flex-grow bg-netflix-dark p-6 flex flex-col overflow-y-auto transition-all duration-300">
+            
+
+            <!-- Primary Player Area -->
+            <div id="player-area-1" class="bg-netflix-light rounded-xl p-4 shadow-2xl flex-grow flex flex-col justify-center items-center">
+                
+                <div class="w-full space-y-4">
+                    <!-- Primary Player (300px height) -->
+                    <iframe 
+                        id="stream-player-1" 
+                        class="player-iframe w-full bg-black rounded-xl shadow-inner border border-gray-700" 
+                        src="" 
+                        frameborder="0" 
+                        sandbox="allow-same-origin allow-scripts" 
+                        allowfullscreen 
+                        title="Primary Sports Stream Player">
+                    </iframe>
+
+                    <!-- Stream Selector and Details -->
+                    <div id="stream-controls-1" class="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-3 sm:space-y-0 bg-netflix-medium p-3 rounded-lg border border-red-700" style="display: none;">
+                        <div class="flex items-center space-x-3">
+                            <span class="text-sm font-medium text-gray-300">Select Stream:</span>
+                            <select id="stream-selector-1" class="p-2 bg-red-800 text-white rounded-md text-sm cursor-pointer hover:bg-red-700 transition">
+                                <option value="">Loading Streams...</option>
+                            </select>
+                        </div>
+                        <button id="load-second-player-btn" class="bg-netflix-red hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg text-sm transition transform hover:scale-[1.02]" onclick="toggleSecondPlayer()">
+                            Show Dual-View Option
+                        </button>
                     </div>
-                `;
+                </div>
+            </div>
+
+            <!-- Second Player Option (Hidden by Default) -->
+            <div id="player-area-2" class="bg-netflix-light rounded-xl p-4 shadow-2xl border-t border-red-900 mt-6 transition-all duration-300 ease-in-out" style="display: none;">
+                <h3 class="text-lg font-semibold mb-3 text-white">Secondary Player</h3>
+                <iframe 
+                    id="stream-player-2" 
+                    class="player-iframe w-full bg-black rounded-xl shadow-inner border border-gray-700" 
+                    src="" 
+                    frameborder="0" 
+                    sandbox="allowosame-origin allow-scripts" 
+                    allowfullscreen 
+                    title="Secondary Sports Stream Player">
+                </iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for error/messages (instead of alert()) -->
+    <div id="modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 transition-opacity duration-300 opacity-0 pointer-events-none">
+        <div class="bg-gray-800 p-6 rounded-xl shadow-2xl border border-red-500 max-w-sm w-full transform -translate-y-5 transition-transform duration-300">
+            <h3 id="modal-title" class="text-xl font-bold mb-4 text-red-400">Error</h3>
+            <p id="modal-message" class="text-gray-200 mb-6"></p>
+            <button onclick="hideModal()" class="w-full bg-red-600 hover:bg-red-500 text-white font-semibold py-2 rounded-lg transition">Close</button>
+        </div>
+    </div>
+
+
+    <script>
+        const API_BASE_URL = 'https://streamed.pk/api';
+        const IMAGE_BASE_URL = 'https://streamed.pk/api/images';
+        const FALLBACK_BADGE_URL = 'https://placehold.co/32x32/E50914/ffffff?text=?';
+        const COUNTDOWN_UPDATE_INTERVAL = 1000;
+        
+        let allMatches = []; // The list of matches currently displayed (filtered or unfiltered)
+        let fullUnfilteredMatches = []; // The full list fetched from the API for the current sport
+        let currentMatchIndex = -1;
+        let selectedMatch = null;
+        let availableStreams = [];
+        let countdownInterval = null;
+        // Global variable to track the currently selected sport name for conditional rendering
+        let currentSelectedSportName = 'Live Matches';
+        
+        // --- Theater Mode State ---
+        let isTheaterMode = false;
+        
+        // --- Lucide SVG definitions for manual swap (due to module scoping) ---
+        const MAXIMIZE_ICON_HTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-maximize"><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></svg>`;
+        const MINIMIZE_ICON_HTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-minimize"><path d="M8 3v3a2 2 0 0 0 2 2h6"/><path d="M16 21v-3a2 2 0 0 0-2-2H8"/><path d="M3 16h3a2 2 0 0 0 2 2h3"/><path d="M21 8h-3a2 2 0 0 0-2-2H9"/></svg>`;
+
+
+        // DOM Elements
+        const sportSelectorEl = document.getElementById('sport-selector');
+        const matchSearchEl = document.getElementById('match-search');
+        const matchListEl = document.getElementById('match-list');
+        const player1Iframe = document.getElementById('stream-player-1');
+        // This element is now in the <header>
+        const playerStatusTextEl = document.getElementById('player-status-text'); 
+        const streamControls1El = document.getElementById('stream-controls-1');
+        const streamSelector1El = document.getElementById('stream-selector-1');
+        const navUpBtn = document.getElementById('nav-up');
+        const navDownBtn = document.getElementById('nav-down');
+        const playerArea2El = document.getElementById('player-area-2');
+        const loadSecondPlayerBtn = document.getElementById('load-second-player-btn');
+        const player2Iframe = document.getElementById('stream-player-2');
+        
+        // NEW DOM elements for Theater Mode
+        const leftPanelEl = document.getElementById('left-panel');
+        const rightPanelEl = document.getElementById('right-panel');
+        const theaterModeBtn = document.getElementById('theater-mode-btn');
+        const mainContentAreaEl = document.getElementById('main-content-area');
+
+
+        // --- Theater Mode Function ---
+
+        function toggleTheaterMode() {
+            isTheaterMode = !isTheaterMode;
+            const iconEl = theaterModeBtn.querySelector('i');
+            const textEl = theaterModeBtn.querySelector('span');
+
+            if (isTheaterMode) {
+                // Enter Theater Mode
                 
-                card.onclick = () => playMedia(item.id, title);
-                // Hover effect for TV - change backdrop
-                card.onmouseenter = () => {
-                    backdrop.style.backgroundImage = `url(${IMG_URL + item.backdrop_path})`;
-                };
+                // 1. Hide the left panel (Match List)
+                leftPanelEl.classList.add('hidden');
+                leftPanelEl.classList.remove('w-[30%]', 'min-w-[320px]', 'border-r');
                 
-                grid.appendChild(card);
+                // 2. Adjust main content height (allow scrolling if content exceeds height, but keep it constrained)
+                mainContentAreaEl.classList.remove('h-[calc(100vh-4rem)]');
+                mainContentAreaEl.classList.add('h-auto', 'min-h-[calc(100vh-4rem)]'); 
+                
+                // 3. Update Button
+                iconEl.innerHTML = MINIMIZE_ICON_HTML;
+                textEl.textContent = 'Standard View';
+                
+            } else {
+                // Exit Theater Mode
+                
+                // 1. Show the left panel and restore width classes
+                leftPanelEl.classList.remove('hidden');
+                leftPanelEl.classList.add('w-[30%]', 'min-w-[320px]', 'border-r');
+                
+                // 2. Restore main content height
+                mainContentAreaEl.classList.remove('h-auto', 'min-h-[calc(100vh-4rem)]');
+                mainContentAreaEl.classList.add('h-[calc(100vh-4rem)]');
+                
+                // 3. Update Button
+                iconEl.innerHTML = MAXIMIZE_ICON_HTML;
+                textEl.textContent = 'Theater Mode';
+            }
+            // Ensure proper icon coloring/size
+            iconEl.classList.add('w-5', 'h-5', 'text-white');
+            
+            // Re-center the content in the right panel after layout shift
+            rightPanelEl.scrollTo(0, 0);
+        }
+
+        // --- Utility Functions (Modal, Fetch, etc.) ---
+
+        function showModal(title, message) {
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-message').textContent = message;
+            const modalEl = document.getElementById('modal');
+            modalEl.classList.remove('opacity-0', 'pointer-events-none');
+            modalEl.querySelector('div').classList.remove('-translate-y-5');
+        }
+
+        function hideModal() {
+            const modalEl = document.getElementById('modal');
+            modalEl.classList.add('opacity-0', 'pointer-events-none');
+            modalEl.querySelector('div').classList.add('-translate-y-5');
+        }
+
+        async function safeFetch(url) {
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return await response.json();
+            } catch (error) {
+                console.error("Fetch failed for URL:", url, error);
+                showModal('Network Error', `Could not fetch data from ${url}. Please check the console for details.`);
+                return null;
+            }
+        }
+
+        function getBadgeUrl(badgeId) {
+            return `${IMAGE_BASE_URL}/badge/${badgeId}.webp`;
+        }
+
+        function getPosterPlaceholderUrl(match) {
+            const text = match.category ? match.category : 'STREAM';
+            // Placeholder now uses Netflix colors (Dark Red text on Light Red BG)
+            return `https://placehold.co/600x120/1c1c1c/E50914?text=${encodeURIComponent(text.toUpperCase())}`; 
+        }
+        
+        // FIX 1: List Away Team first
+        function formatMatchTitle(match) {
+            const homeName = match.teams?.home?.name || 'TBD';
+            const awayName = match.teams?.away?.name || 'TBD';
+            return `${awayName} vs ${homeName}`; // Away vs Home
+        }
+
+        // --- Countdown Logic ---
+        
+        function formatTimeDifference(ms) {
+            const absoluteMs = Math.abs(ms);
+
+            const totalSeconds = Math.floor(absoluteMs / 1000);
+            const totalMinutes = Math.floor(totalSeconds / 60);
+            const totalHours = Math.floor(totalMinutes / 60);
+            const totalDays = Math.floor(totalHours / 24);
+
+            if (totalDays > 0) {
+                return `${totalDays}d ${totalHours % 24}h`;
+            } else if (totalHours > 0) {
+                return `${totalHours}h ${totalMinutes % 60}m`;
+            } else if (totalMinutes > 0) {
+                return `${totalMinutes}m ${totalSeconds % 60}s`;
+            } else {
+                return `${totalSeconds}s`;
+            }
+        }
+
+        function updateCountdowns() {
+            const now = new Date().getTime();
+            
+            document.querySelectorAll('.countdown-timer').forEach(timerEl => {
+                const matchId = timerEl.dataset.matchId;
+                // Find the match in the current displayed list
+                const match = allMatches.find(m => m.id === matchId);
+                
+                if (match) {
+                    const matchTime = new Date(match.date).getTime();
+                    const timeRemaining = matchTime - now;
+                    // statusTextEl remains the previous element, which is the countdown-status span
+                    const statusTextEl = timerEl.previousElementSibling; 
+
+                    if (timeRemaining <= 0) {
+                        timerEl.textContent = 'In Progress';
+                        if (statusTextEl) statusTextEl.textContent = 'Status:';
+                        timerEl.classList.remove('text-yellow-300', 'text-red-400', 'animate-pulse');
+                        timerEl.classList.add('text-green-400');
+                    } else {
+                        timerEl.textContent = formatTimeDifference(timeRemaining);
+                        if (statusTextEl) statusTextEl.textContent = 'Start:';
+                        
+                        timerEl.classList.remove('text-green-400');
+
+                        if (timeRemaining < 60000) {
+                            // Highlight in Red-400 if less than 1 minute remaining
+                            timerEl.classList.remove('text-yellow-300');
+                            timerEl.classList.add('text-red-400', 'animate-pulse');
+                        } else {
+                            // Use light yellow for general countdown
+                            timerEl.classList.add('text-yellow-300');
+                            timerEl.classList.remove('text-red-400', 'animate-pulse');
+                        }
+                    }
+                }
             });
         }
 
-        function playMedia(id, title) {
-            playingTitle.textContent = `Streaming: ${title}`;
-            mainPlayer.src = `${PLAYER_BASE}?id=${id}&type=${currentMode}`;
-            playerOverlay.style.display = 'flex';
-            document.body.style.overflow = 'hidden';
+        function startCountdowns() {
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+            }
+            countdownInterval = setInterval(updateCountdowns, COUNTDOWN_UPDATE_INTERVAL);
+            updateCountdowns();
         }
 
-        document.getElementById('closePlayer').onclick = () => {
-            playerOverlay.style.display = 'none';
-            mainPlayer.src = '';
-            document.body.style.overflow = 'auto';
-        };
+        // --- Player Controls ---
 
-        // Navigation Handlers
-        document.getElementById('btnMovies').onclick = (e) => {
-            currentMode = 'movie';
-            currentPage = 1;
-            e.target.style.opacity = '1';
-            document.getElementById('btnTV').style.opacity = '0.5';
-            document.getElementById('rowTitle').innerHTML = 'Trending Movies <div class="h-1 w-24 bg-tv-accent rounded-full"></div>';
-            fetchTrending();
-        };
+        function toggleSecondPlayer() {
+            const isHidden = playerArea2El.style.display === 'none';
+            playerArea2El.style.display = isHidden ? 'flex' : 'none'; // Changed to flex for proper layout
+            loadSecondPlayerBtn.textContent = isHidden ? 'Hide Dual-View Option' : 'Show Dual-View Option';
 
-        document.getElementById('btnTV').onclick = (e) => {
-            currentMode = 'tv';
-            currentPage = 1;
-            e.target.style.opacity = '1';
-            document.getElementById('btnMovies').style.opacity = '0.5';
-            document.getElementById('rowTitle').innerHTML = 'Trending TV Shows <div class="h-1 w-24 bg-tv-accent rounded-full"></div>';
-            fetchTrending();
-        };
+            // Clear secondary player if hiding
+            if (!isHidden) {
+                loadStreamIntoPlayer('', player2Iframe);
+            }
+        }
 
-        document.getElementById('searchInput').oninput = (e) => {
-            activeQuery = e.target.value;
-            currentPage = 1;
-            clearTimeout(window.searchTimer);
-            window.searchTimer = setTimeout(() => {
-                if(activeQuery.length > 2) {
-                    fetchContent(false);
-                } else if (activeQuery === '') {
-                    fetchTrending();
+        function loadStreamIntoPlayer(streamUrl, playerIframe) {
+            playerIframe.src = streamUrl || '';
+        }
+
+        // --- Stream Logic ---
+
+        function updatePlayerFromSelector(event) {
+            const selectedStreamId = event.target.value;
+            const stream = availableStreams.find(s => s.id === selectedStreamId);
+            if (stream) {
+                loadStreamIntoPlayer(stream.embedUrl, player1Iframe);
+                // Update status in the header
+                playerStatusTextEl.textContent = `${formatMatchTitle(selectedMatch)} - ${stream.language} (${stream.hd ? 'HD' : 'SD'})`;
+            }
+        }
+
+        function renderStreamSelector(streams) {
+            availableStreams = streams;
+            streamSelector1El.innerHTML = '';
+
+            if (streams.length === 0) {
+                const option = document.createElement('option');
+                option.textContent = 'No streams available.';
+                streamSelector1El.appendChild(option);
+                streamControls1El.style.display = 'none';
+                loadStreamIntoPlayer('', player1Iframe);
+                showModal('No Streams', `Could not find any streams for ${formatMatchTitle(selectedMatch)}.`);
+                return;
+            }
+            
+            streamControls1El.style.display = 'flex';
+            
+            // Sort streams
+            streams.sort((a, b) => {
+                if (a.language === "English" && a.hd && !(b.language === "English" && b.hd)) return -1;
+                if (b.language === "English" && b.hd && !(a.language === "English" && b.hd)) return 1;
+                return a.streamNo - b.streamNo;
+            });
+
+            streams.forEach((stream, index) => {
+                const option = document.createElement('option');
+                option.value = stream.id;
+                option.textContent = `${stream.language} (${stream.hd ? 'HD' : 'SD'}) - Src: ${stream.source.toUpperCase()}`;
+                if (index === 0) {
+                    // Automatically select the best available stream
+                    option.selected = true;
+                    loadStreamIntoPlayer(stream.embedUrl, player1Iframe);
+                    // Update status in the header
+                    playerStatusTextEl.textContent = `${formatMatchTitle(selectedMatch)} - ${stream.language} (${stream.hd ? 'HD' : 'SD'})`;
                 }
-            }, 600);
-        };
+                streamSelector1El.appendChild(option);
+            });
 
-        document.getElementById('loadMore').onclick = () => {
-            currentPage++;
-            fetchContent(true);
-        };
+            streamSelector1El.onchange = updatePlayerFromSelector;
+        }
 
-        // Init
-        window.onload = () => {
-            fetchTrending();
+        async function loadMatchStream(match) {
+            if (!match) return;
+
+            // Clear players and update status
+            loadStreamIntoPlayer('', player1Iframe);
+            loadStreamIntoPlayer('', player2Iframe);
+            selectedMatch = match;
+            
+            if (!match.sources || match.sources.length === 0) {
+                showModal('Missing Sources', `Match ${formatMatchTitle(match)} has no available stream sources.`);
+                playerStatusTextEl.textContent = `${formatMatchTitle(match)} - No Streams Found`; // Update status in the header
+                streamControls1El.style.display = 'none';
+                return;
+            }
+
+            let streams = [];
+            
+            // Set initial loading state
+            streamControls1El.style.display = 'none';
+            playerStatusTextEl.textContent = `Loading Streams for ${formatMatchTitle(match)}...`; // Update status in the header
+
+            // Fetch streams from all listed sources
+            for (const source of match.sources) {
+                const url = `${API_BASE_URL}/stream/${source.source}/${source.id}`;
+                const sourceStreams = await safeFetch(url);
+                if (sourceStreams && Array.isArray(sourceStreams)) {
+                    const enrichedStreams = sourceStreams.map(s => ({ ...s, source: source.source }));
+                    streams = streams.concat(enrichedStreams);
+                }
+            }
+
+            const uniqueStreams = streams.filter((stream, index, self) =>
+                index === self.findIndex((s) => s.id === stream.id)
+            );
+            
+            renderStreamSelector(uniqueStreams);
+
+            // Scroll to the top of the main content area (simulating screen change)
+            document.getElementById('right-panel').scrollTo(0, 0);
+        }
+        
+        // --- Match List Logic ---
+        
+        // New function to handle selection/highlighting only
+        function selectMatch(index) {
+            if (index < 0 || index >= allMatches.length) return;
+
+            currentMatchIndex = index;
+            highlightSelectedMatch(index);
+
+            if (allMatches.length > 0) {
+                selectedMatch = allMatches[index];
+                // Update status text in the header to show the currently selected match
+                playerStatusTextEl.textContent = `Selected: ${formatMatchTitle(selectedMatch)}`;
+            }
+        }
+        
+        // Original click handler (loads stream on click/tap)
+        function handleMatchClick(index) {
+            const match = allMatches[index];
+            selectMatch(index); // Selects and highlights
+            loadMatchStream(match); // Loads the stream
+        }
+
+        function highlightSelectedMatch(index) {
+            const matchItems = matchListEl.querySelectorAll('.match-item');
+            matchItems.forEach((item, i) => {
+                if (i === index) {
+                    // Use Netflix red for selection highlight
+                    item.classList.add('border-netflix-red', 'ring-2', 'ring-netflix-red');
+                    item.classList.remove('border-gray-700', 'hover:bg-netflix-light');
+                } else {
+                    item.classList.remove('border-netflix-red', 'ring-2', 'ring-netflix-red');
+                    item.classList.add('border-gray-700', 'hover:bg-netflix-light');
+                }
+            });
+
+            // Scroll the selected item into view
+            const selectedItem = matchItems[index];
+            if (selectedItem) {
+                selectedItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+        
+        // UPDATED: Contains the corrected logic and layout changes
+        function renderMatch(match, index, currentSelectedSportName) {
+            const matchEl = document.createElement('div');
+            // UPDATED: Sleek, horizontal card design
+            matchEl.className = 'match-item cursor-pointer bg-netflix-medium hover:bg-netflix-light transition p-3 rounded-lg border-2 border-gray-700 shadow-xl';
+            matchEl.dataset.index = index;
+            matchEl.dataset.matchId = match.id || `temp-${index}`;
+            
+            const title = formatMatchTitle(match);
+            const date = new Date(match.date).toLocaleDateString();
+            const time = new Date(match.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            const homeBadgeUrl = match.teams?.home?.badge ? getBadgeUrl(match.teams.home.badge) : FALLBACK_BADGE_URL;
+            const awayBadgeUrl = match.teams?.away?.badge ? getBadgeUrl(match.teams.away.badge) : FALLBACK_BADGE_URL;
+            const matchId = match.id || `temp-${index}`; 
+
+            const category = match.category || 'SPORT';
+            
+            // Conditional Category Display Logic
+            const showCategory = currentSelectedSportName.toLowerCase() === 'live matches';
+
+
+            // NEW CARD STRUCTURE (Horizontal Flex)
+            matchEl.innerHTML = `
+                <div class="flex items-center justify-between h-full text-white">
+
+                    <!-- 1. Team Logos/Stack (Left Side - 30% width) -->
+                    <div class="flex flex-col items-center justify-center space-y-1 w-[30%] min-w-[80px]">
+                        <!-- STACKED BADGES: AWAY ON TOP, with space between (FIX 2) -->
+                        <div class="flex flex-col items-center space-y-1"> 
+                            <!-- AWAY TEAM (Top of stack) -->
+                            <img src="${awayBadgeUrl}" onerror="this.src='${FALLBACK_BADGE_URL}'" alt="Away Badge" class="w-8 h-8 rounded-full object-cover bg-gray-900 border border-red-700/50 shadow-md">
+                            <!-- HOME TEAM (Bottom of stack, separated by space-y-1) -->
+                            <img src="${homeBadgeUrl}" onerror="this.src='${FALLBACK_BADGE_URL}'" alt="Home Badge" class="w-8 h-8 rounded-full object-cover bg-gray-900 border border-red-700/50 shadow-md">
+                        </div>
+                        <!-- Conditional Category Display -->
+                        ${showCategory ? `<p class="text-[10px] text-gray-400 font-medium mt-1 truncate w-full text-center">${category}</p>` : ''}
+                    </div>
+
+                    <!-- 2. Details and Countdown (Right Side - 70% width) -->
+                    <div class="flex flex-col justify-start space-y-0.5 w-[70%] pl-4 border-l border-gray-700/50 h-full">
+                        
+                        <!-- 1. Date/Time (text-xs for compactness) -->
+                        <p class="text-xs text-gray-400 font-medium leading-none">${date} @ ${time}</p>
+
+                        <!-- 2. Compact Title (text-sm, leading-tight) -->
+                        <h3 class="font-bold text-sm text-white leading-tight">${title}</h3>
+                        
+                        <!-- Countdown Banner Area - mt-auto pushes it to the bottom of the column -->
+                        <div class="mt-auto pt-1"> 
+                            <div class="bg-red-900/30 rounded-md p-1 border border-red-700/50">
+                                 <div class="flex items-center justify-between text-xs font-semibold">
+                                    <span class="text-red-300 countdown-status">Start:</span>
+                                    <span data-match-id="${matchId}" class="countdown-timer text-sm font-extrabold text-yellow-300">Calculating...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            matchEl.addEventListener('click', () => handleMatchClick(index));
+            return matchEl;
+        }
+
+        // UPDATED: Now takes the currently selected sport name
+        function renderMatches(matches, selectedSportName) {
+            // Update the currently displayed list
+            allMatches = matches;
+            matchListEl.innerHTML = '';
+            
+            if (matches.length === 0) {
+                matchListEl.innerHTML = '<p class="text-center text-gray-500 p-8 text-lg">No matches match your filter criteria.</p>';
+                playerStatusTextEl.textContent = 'Select a Match to Start Streaming';
+                
+                if (countdownInterval) {
+                    clearInterval(countdownInterval);
+                    countdownInterval = null;
+                }
+                return;
+            }
+            
+            matches.forEach((match, index) => {
+                // Pass the current selected sport name to the renderer
+                matchListEl.appendChild(renderMatch(match, index, selectedSportName));
+            });
+            
+            // Reset selection index and select the first one if the new list has items
+            currentMatchIndex = -1; // Reset before selecting
+            selectMatch(0);
+            startCountdowns();
+        }
+
+        // --- New Search/Filter Logic ---
+
+        function filterAndRenderMatches() {
+            const searchTerm = matchSearchEl.value.toLowerCase().trim();
+            
+            // Filter from the full, original list
+            const filteredMatches = fullUnfilteredMatches.filter(match => {
+                const title = formatMatchTitle(match).toLowerCase();
+                const category = match.category ? match.category.toLowerCase() : '';
+                return title.includes(searchTerm) || category.includes(searchTerm);
+            });
+
+            // Pass the global sport name to render the filtered list
+            renderMatches(filteredMatches, currentSelectedSportName);
+        }
+
+        // --- Sport/API Logic ---
+
+        async function fetchMatches(sportId) {
+            // Display loading indicator
+            // UPDATED: Loading indicator to match the new card shape (h-24 and rounded-lg)
+            matchListEl.innerHTML = `
+                <div class="animate-pulse space-y-3">
+                    <div class="bg-netflix-light rounded-lg h-24"></div>
+                    <div class="bg-netflix-light rounded-lg h-24"></div>
+                    <div class="bg-netflix-light rounded-lg h-24"></div>
+                </div>
+            `;
+            
+            // Get the name of the selected sport (for conditional display later)
+            const selectedOption = sportSelectorEl.querySelector(`option[value="${sportId}"]`);
+            // Store the full text content of the selected option
+            currentSelectedSportName = selectedOption ? selectedOption.textContent : 'Live Matches';
+
+            const endpoint = sportId === 'live' ? 'matches/live' : `matches/${sportId}`;
+            const url = `${API_BASE_URL}/${endpoint}`;
+            const matches = await safeFetch(url);
+            
+            if (matches && Array.isArray(matches)) {
+                const filteredMatches = matches.filter(match => {
+                    const homeName = match.teams?.home?.name;
+                    const awayName = match.teams?.away?.name;
+                    return homeName && awayName;
+                });
+                
+                // Store the full unfiltered list for searching
+                fullUnfilteredMatches = filteredMatches;
+                matchSearchEl.value = ''; // Clear search when fetching new category
+                
+                // Render the full list initially, passing the sport name
+                renderMatches(filteredMatches, currentSelectedSportName);
+            } else {
+                matchListEl.innerHTML = '<p class="text-center text-red-400 p-4">Failed to load matches.</p>';
+                fullUnfilteredMatches = [];
+            }
+        }
+
+        async function fetchSports() {
+            const sports = await safeFetch(`${API_BASE_URL}/sports`);
+            if (sports) {
+                sports.sort((a, b) => a.name.localeCompare(b.name));
+
+                sports.forEach(sport => {
+                    const option = document.createElement('option');
+                    option.value = sport.id;
+                    option.textContent = sport.name;
+                    sportSelectorEl.appendChild(option);
+                });
+            }
+            sportSelectorEl.addEventListener('change', (e) => {
+                fetchMatches(e.target.value);
+            });
+        }
+
+
+        // --- D-Pad Navigation Handlers (Selection Only) ---
+        function navigateMatchList(direction) {
+            // User requested: DO NOT load stream on navigation!
+            if (allMatches.length === 0) return;
+
+            let newIndex = currentMatchIndex;
+            if (direction === 'up') {
+                newIndex = (currentMatchIndex - 1 + allMatches.length) % allMatches.length;
+            } else if (direction === 'down') {
+                newIndex = (currentMatchIndex + 1) % allMatches.length;
+            }
+
+            if (newIndex !== currentMatchIndex) {
+                selectMatch(newIndex); 
+            }
+        }
+        
+        // --- Initialization ---
+        window.onload = function() {
+            // 1. Fetch sports for the dropdown
+            fetchSports();
+            
+            // 2. Load default (live) matches
+            fetchMatches('live');
+            
+            // 3. Attach D-Pad and Search handlers
+            navUpBtn.addEventListener('click', () => navigateMatchList('up'));
+            navDownBtn.addEventListener('click', () => navigateMatchList('down'));
+            matchSearchEl.addEventListener('input', filterAndRenderMatches);
+
+            // 4. Keyboard navigation (for D-Pad logic)
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    navigateMatchList('up');
+                } else if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    navigateMatchList('down');
+                }
+            });
         };
+        // Expose functions to window
+        window.hideModal = hideModal;
+        window.toggleSecondPlayer = toggleSecondPlayer;
+        window.toggleTheaterMode = toggleTheaterMode; // Expose the new function
     </script>
 </body>
 </html>
