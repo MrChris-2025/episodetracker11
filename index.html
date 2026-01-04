@@ -3,1087 +3,478 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dynamic TMDB Gallery</title>
+    <title>StreamVault - Watch History & Navigation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://npmcdn.com/parse/dist/parse.min.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #121212;
-            color: #fff;
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        header {
-            background-color: #282828;
-            padding: 15px;
-            text-align: center;
-            border-bottom: 2px solid #3d3d3d;
-        }
-
-        main {
-            display: flex;
-            flex-direction: column;
-            padding: 20px;
-        }
-
-        .top-section {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-        }
-
-        .video-player-container {
-            flex: 3;
-            min-width: 300px;
-        }
-
-        #videoPlayer {
-            width: 100%;
-            aspect-ratio: 16 / 9;
-            border-radius: 8px;
-            background-color: #000;
-        }
-
-        .episode-nav-container {
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-            margin-top: 10px;
-            margin-bottom: 10px;
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #0a0a0a; color: #f3f4f6; }
+        .bg-purple { background-color: #a855f7; }
+        .glass { background: rgba(23, 23, 23, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
         
-        .episode-nav-container button {
-            background-color: #8834ec;
-            color: #fff;
-            border: none;
-            padding: 8px 12px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 0.9em;
-            transition: background-color 0.2s;
-        }
-        
-        .episode-nav-container button:hover {
-            background-color: #a050f0;
-        }
-
-        .episode-nav-container button:disabled {
-            background-color: #555;
-            cursor: not-allowed;
-            opacity: 0.5;
-        }
-        
-        #videoDetails {
-            margin-top: 20px;
-        }
-
-        #videoTitle {
-            font-size: 2em;
-            margin-bottom: 10px;
-        }
-
-        #videoOverview {
-            font-size: 1em;
-            color: #b0b0b0;
-        }
-
-        .source-selector {
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-        }
-
-        .source-selector label {
-            margin-right: 10px;
-            font-size: 1.1em;
-        }
-
-        .source-selector select {
-            background-color: #212121;
-            color: #fff;
-            border: 1px solid #3d3d3d;
-            border-radius: 5px;
-            padding: 5px;
-            font-size: 1em;
-            cursor: pointer;
-        }
-        
-        .sidebar-gallery {
-            flex: 1;
-            min-width: 250px;
-            background-color: #212121;
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-
-        .sidebar-gallery h2 {
-            margin-top: 0;
-            font-size: 1.5em;
-            border-bottom: 1px solid #3d3d3d;
-            padding-bottom: 5px;
-            margin-bottom: 10px;
-        }
-
-        .gallery-container {
-            display: flex;
-            overflow-x: auto;
-            gap: 15px;
-            padding-bottom: 10px;
-            scrollbar-width: thin;
-            scrollbar-color: #8834ec #212121;
-        }
-
-        .gallery-container::-webkit-scrollbar {
-            height: 8px;
-        }
-
-        .gallery-container::-webkit-scrollbar-track {
-            background: #212121;
-            border-radius: 10px;
-        }
-
-        .gallery-container::-webkit-scrollbar-thumb {
-            background-color: #8834ec;
-            border-radius: 10px;
-            border: 2px solid #212121;
-        }
-
-        .gallery-item {
-            display: flex;
-            flex-direction: column;
-            width: 150px;
-            flex-shrink: 0;
-            cursor: pointer;
-            transition: transform 0.2s;
-            position: relative;
-            background-color: #282828;
-            border-radius: 8px;
-            padding: 10px;
-        }
-
-        .gallery-item:hover {
-            transform: scale(1.02);
-        }
-
-        .gallery-item-trending {
-            display: flex;
-            flex-direction: column;
-            width: 150px;
-            flex-shrink: 0;
-            cursor: pointer;
-            transition: transform 0.2s;
-            background-color: #282828;
-            border-radius: 8px;
-            padding: 10px;
-        }
-
-        .gallery-item-trending:hover {
-            transform: scale(1.02);
-        }
-
-        .gallery-item-trending img {
-            width: 100%;
-            height: auto;
-            border-radius: 5px;
-            margin-bottom: 10px;
-        }
-
-        .gallery-item-trending .item-details {
-            text-align: center;
-        }
-
-        .gallery-item img {
-            width: 100%; /* Make image fill its container */
-            height: auto;
-            border-radius: 5px;
-            margin-bottom: 10px;
-        }
-
-        .item-details {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            flex-grow: 1;
-        }
-
-        .item-details h4 {
-            margin: 0;
-            font-size: 1em;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .item-details p {
-            margin: 5px 0 0;
-            font-size: 0.8em;
-            color: #909090;
-        }
-
-        .progress-indicator {
-            font-size: 0.75em;
-            color: #8834ec;
-            margin-top: 5px;
-        }
-
-        #continueWatchingGallery {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        #continueWatchingGallery .gallery-item {
-            flex-direction: row;
-            width: auto;
-            background-color: #282828;
-            border-radius: 8px;
-            padding: 10px;
-            margin-bottom: 0;
-        }
-
-        #continueWatchingGallery .gallery-item img {
-            width: 100px;
-            height: auto;
-            margin-right: 15px;
-            margin-bottom: 0;
-        }
-
-        .trailer-button {
-            background-color: #8834ec;
-            color: white;
-            border: none;
-            padding: 8px 12px;
-            margin-top: 10px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 0.9em;
-            width: 100%;
-            text-align: center;
-            transition: background-color 0.2s;
-        }
-
-        .trailer-button:hover {
-            background-color: #a050f0;
-        }
-
-        /* Style for empty continue watching message */
-        #continueWatchingMessage {
-            font-size: 0.9em;
-            color: #b0b0b0;
-            text-align: center;
-            padding: 20px 0;
-        }
-
-        /* Style for the close button */
-        .close-button {
+        .watched-banner {
             position: absolute;
-            top: 5px;
-            right: 5px;
-            background-color: rgba(0, 0, 0, 0.6);
-            color: #fff;
-            border: none;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            font-size: 0.8em;
-            font-weight: bold;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(168, 85, 247, 0.95);
+            padding: 6px 4px;
+            color: white;
+            font-size: 8.5px;
+            font-weight: 700;
+            text-align: center;
+            line-height: 1.2;
+            backdrop-filter: blur(8px);
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            z-index: 10;
+        }
+
+        .history-card:hover img, .gallery-card:hover img { transform: scale(1.05); }
+        
+        .delete-btn {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            width: 22px;
+            height: 22px;
+            background-color: #ef4444;
+            color: white;
+            border-radius: 9999px;
             display: flex;
             align-items: center;
             justify-content: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            z-index: 60;
             cursor: pointer;
-            transition: background-color 0.2s;
-            opacity: 0;
-            pointer-events: none;
+            border: 2px solid #0a0a0a;
+            transition: all 0.2s ease;
         }
+        .delete-btn:hover { transform: scale(1.15); background-color: #dc2626; }
 
-        #continueWatchingGallery .gallery-item:hover .close-button {
-            opacity: 1;
-            pointer-events: auto;
-        }
+        /* Updated Watched Style */
+        .ep-watched { color: #22c55e !important; font-weight: bold; }
 
-        .close-button:hover {
-            background-color: rgba(255, 0, 0, 0.8);
-        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0a0a0a; }
+        ::-webkit-scrollbar-thumb { background: #262626; border-radius: 10px; }
 
-        /* New styles for buttons and pagination */
-        .gallery-controls {
+        .episode-nav-btn {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 12px;
+            background: #1a1a1a;
+            border: 1px solid rgba(255,255,255,0.1);
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s;
         }
-
-        .media-buttons button {
-            background-color: #3d3d3d;
-            color: #fff;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1em;
-            transition: background-color 0.2s;
-            margin-right: 10px;
+        .episode-nav-btn:hover:not(:disabled) {
+            background: #262626;
+            border-color: #a855f7;
         }
-
-        .media-buttons button:hover {
-            background-color: #555;
-        }
-
-        .media-buttons button.active {
-            background-color: #8834ec;
-        }
-
-        .pagination-buttons {
-            display: flex;
-            gap: 10px;
-        }
-
-        .pagination-buttons button {
-            background-color: #8834ec;
-            color: #fff;
-            border: none;
-            padding: 8px 12px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 0.9em;
-            transition: background-color 0.2s;
-        }
-        
-        #loadMoreBtn:hover {
-            background-color: #a050f0;
-        }
-
-        .pagination-buttons button:disabled {
-            background-color: #555;
+        .episode-nav-btn:disabled {
+            opacity: 0.3;
             cursor: not-allowed;
-            opacity: 0.5;
-        }
-
-        .pagination-buttons button:hover:not(:disabled) {
-            background-color: #a050f0;
-        }
-
-        .episode-list {
-            margin-top: 20px;
-            background-color: #212121;
-            padding: 15px;
-            border-radius: 8px;
-            display: none; /* Initially hidden */
         }
         
-        .episode-list h3 {
-            margin-top: 0;
-        }
-        
-        #episodesContainer {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .episode-item {
-            background-color: #282828;
-            padding: 10px;
-            border-radius: 5px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            transition: background-color 0.2s;
-        }
-
-        .episode-item:hover {
-            background-color: #3d3d3d;
-        }
-
-        .episode-item img {
-            width: 100px;
-            height: auto;
-            border-radius: 5px;
-            margin-right: 15px;
-        }
-
-        .episode-info {
-            flex-grow: 1;
-        }
-
-        .episode-info h4 {
-            margin: 0;
-            font-size: 1.1em;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .episode-info p {
-            margin: 5px 0 0;
-            font-size: 0.9em;
-            color: #b0b0b0;
-        }
-        
-        #loadMoreBtn {
-            text-align: center;
-            margin-top: 20px;
-            display: block;
-            width: 100%;
-        }
-
-        /* Adjust layout for smaller screens */
-        @media (max-width: 768px) {
-            .top-section {
-                flex-direction: column;
-            }
-
-            .video-player-container {
-                margin-right: 0;
-                margin-bottom: 20px;
-            }
-
-            .sidebar-gallery {
-                min-width: unset;
-                width: 100%;
-            }
-
-            .gallery-controls {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            
-            .media-buttons {
-                margin-bottom: 10px;
-            }
-        }
+        /* Ensure select options styling is visible in various browsers */
+        option { background-color: #1a1a1a; color: white; }
     </style>
 </head>
-<body>
-    <header>
-        <h1>🎬 TMDB Gallery</h1>
-    </header>
-    <main>
-        <div class="top-section">
-            <section class="video-player-container">
-                <iframe id="videoPlayer" width="100%" height="auto" src="" frameborder="0" allowfullscreen sandbox="allow-same-origin allow-scripts"></iframe>
-                <div class="episode-nav-container" id="episodeNavContainer" style="display:none;">
-                    <button id="prevEpisodeBtn">Previous Episode</button>
-                    <button id="nextEpisodeBtn">Next Episode</button>
+<body class="pb-20">
+
+    <header class="sticky top-0 z-50 glass py-4 px-6 border-b border-white/5">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3 cursor-pointer" onclick="location.reload()">
+                <div class="w-10 h-10 bg-purple rounded-xl flex items-center justify-center">
+                    <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"></path></svg>
                 </div>
-                <div id="videoDetails">
-                    <h2 id="videoTitle"></h2>
-                    <div class="source-selector">
-                        <label for="sourceSelect">Source:</label>
-                        <select id="sourceSelect"></select>
-                    </div>
-                    <p id="videoOverview"></p>
-                </div>
-                <section id="episodeListSection" class="episode-list">
-                    <h3>Episodes</h3>
-                    <div id="episodesContainer"></div>
-                </section>
-            </section>
-            <aside class="sidebar-gallery">
-                <h2 id="continueWatchingHeader">Continue Watching</h2>
-                <div style="overflow-y: scroll; height:500px;">
-                <div id="continueWatchingGallery">
-                    <p id="continueWatchingMessage">No items in continue watching. Start playing something!</p>
-                </div>
-            </aside>
+                <h1 class="text-xl font-bold tracking-tight">StreamVault</h1>
+            </div>
+
+            <div class="relative w-full max-w-md">
+                <input type="text" id="searchInput" placeholder="Search movies or shows..." class="w-full bg-[#1a1a1a] border border-white/10 rounded-full py-2 px-10 focus:outline-none focus:border-purple-500 text-sm">
+                <svg class="w-4 h-4 absolute left-4 top-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            </div>
+
+            <div class="flex bg-[#1a1a1a] p-1 rounded-lg border border-white/5">
+                <button id="showMoviesBtn" class="px-5 py-1.5 rounded-md text-sm font-semibold bg-purple transition-all">Movies</button>
+                <button id="showTvBtn" class="px-5 py-1.5 rounded-md text-sm font-semibold text-gray-400 hover:text-white transition-all">TV Shows</button>
+            </div>
         </div>
-        
-        <section class="gallery-section">
-            <div class="gallery-controls">
-                <h2>Trending Now</h2>
-                <div class="media-buttons">
-                    <button id="showAllBtn" class="active">All</button>
-                    <button id="showMoviesBtn">Movies</button>
-                    <button id="showTvBtn">TV Shows</button>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-6 mt-8">
+        <!-- Player -->
+        <section id="playerSection" class="hidden mb-12">
+            <div class="glass p-4 rounded-2xl shadow-2xl">
+                <div id="videoContainer" class="aspect-video bg-black rounded-xl overflow-hidden relative">
+                    <iframe id="mainPlayer" src="" class="w-full h-full" allowfullscreen frameborder="0"></iframe>
+                </div>
+                
+                <div class="mt-6">
+                    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 border-b border-white/5 pb-6">
+                        <div>
+                            <h2 id="playerTitle" class="text-2xl font-bold text-white">Title</h2>
+                            <p id="playerSub" class="text-sm text-purple-400 font-semibold uppercase mt-1"></p>
+                        </div>
+                        <div class="flex flex-wrap gap-3 w-full lg:w-auto">
+                            <select id="srcSelect" class="bg-[#1a1a1a] text-sm border border-white/10 rounded-lg px-4 py-2.5 outline-none hover:border-purple-500"></select>
+                            <div id="tvSelectors" class="hidden flex gap-2">
+                                <select id="seasonSelect" class="bg-[#1a1a1a] text-sm border border-white/10 rounded-lg px-4 py-2.5 outline-none hover:border-purple-500"></select>
+                                <select id="episodeSelect" class="bg-[#1a1a1a] text-sm border border-white/10 rounded-lg px-4 py-2.5 outline-none hover:border-purple-500"></select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="episodeInfo" class="hidden mt-6 flex flex-col md:flex-row gap-6">
+                        <div id="episodePosterContainer" class="w-full md:w-64 h-36 flex-shrink-0 rounded-xl overflow-hidden bg-[#1a1a1a] border border-white/10">
+                            <img id="episodeStill" src="" class="w-full h-full object-cover opacity-80" alt="Episode Still">
+                        </div>
+                        <div class="flex-grow">
+                            <div class="flex items-center justify-between mb-3">
+                                <h3 id="epTitleDisplay" class="text-lg font-bold text-white">Episode Name</h3>
+                                <div class="flex gap-2">
+                                    <button id="prevEpBtn" class="episode-nav-btn">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                                        Prev
+                                    </button>
+                                    <button id="nextEpBtn" class="episode-nav-btn">
+                                        Next
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <p id="epOverview" class="text-sm text-gray-400 leading-relaxed line-clamp-3">No description available for this episode.</p>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div id="gallery" class="gallery-container"></div>
-            <button id="loadMoreBtn" class="pagination-buttons">Load More</button>
+        </section>
+
+        <!-- History -->
+        <section id="historySection" class="hidden mb-12">
+            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-[0.2em] mb-5">Recent Activity</h3>
+            <div id="historyGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"></div>
+        </section>
+
+        <!-- Gallery -->
+        <section>
+            <h3 id="galleryTitle" class="text-xl font-bold mb-8 text-white">Popular Movies</h3>
+            <div id="galleryGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6"></div>
+            <div class="flex justify-center items-center gap-10 mt-16 mb-10">
+                <button id="prevBtn" class="w-12 h-12 bg-[#1a1a1a] rounded-full flex items-center justify-center text-gray-400 hover:bg-purple hover:text-white disabled:opacity-20 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                </button>
+                <span id="pageTxt" class="text-sm font-bold text-gray-500 uppercase tracking-widest">Page 1</span>
+                <button id="nextBtn" class="w-12 h-12 bg-[#1a1a1a] rounded-full flex items-center justify-center text-gray-400 hover:bg-purple hover:text-white transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                </button>
+            </div>
         </section>
     </main>
-    <script src="https://heather2025.nekoweb.org/sources.js"></script>
+
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const API_KEY = '1070730380f5fee0d87cf0382670b255';
-            const GALLERY_CONTAINER = document.getElementById('gallery');
-            const CONTINUE_WATCHING_GALLERY = document.getElementById('continueWatchingGallery');
-            const CONTINUE_WATCHING_MESSAGE = document.getElementById('continueWatchingMessage');
-            const VIDEO_PLAYER = document.getElementById('videoPlayer');
-            const VIDEO_TITLE = document.getElementById('videoTitle');
-            const VIDEO_OVERVIEW = document.getElementById('videoOverview');
-            const SOURCE_SELECT = document.getElementById('sourceSelect');
-            const SHOW_ALL_BTN = document.getElementById('showAllBtn');
-            const SHOW_MOVIES_BTN = document.getElementById('showMoviesBtn');
-            const SHOW_TV_BTN = document.getElementById('showTvBtn');
-            const LOAD_MORE_BTN = document.getElementById('loadMoreBtn');
-            const EPISODE_LIST_SECTION = document.getElementById('episodeListSection');
-            const EPISODES_CONTAINER = document.getElementById('episodesContainer');
-            const EPISODE_NAV_CONTAINER = document.getElementById('episodeNavContainer');
-            const PREV_EPISODE_BTN = document.getElementById('prevEpisodeBtn');
-            const NEXT_EPISODE_BTN = document.getElementById('nextEpisodeBtn');
+        const CONFIG = {
+            PARSE_APP_ID: "GUIFjcRB8wEOGXbBfBl8zu0yCRXLwcOTTT4dGcOT",
+            PARSE_JS_KEY: "qqX1cAGsgv3yg2n8Gda2Le1CH7OUQDB7BvQdONRf",
+            TMDB_KEY: '1070730380f5fee0d87cf0382670b255'
+        };
 
-            const BASE_URL = 'https://api.themoviedb.org/3';
-            const IMAGE_URL = 'https://image.tmdb.org/t/p/w500';
+        const availableSources = [
+            { id: 'videasy', name: 'VidEasy', urls: { movie: 'https://player.videasy.net/movie/{id}?color=8834ec', tv: 'https://player.videasy.net/tv/{id}/{season}/{episode}?nextEpisode=true&color=8834ec' } },
+            { id: 'vidsrcsu', name: 'vidsrc.su', urls: { movie: 'https://vidsrc.su/embed/movie/{id}', tv: 'https://vidsrc.su/embed/tv/{id}/{season}/{episode}' } },
+            { id: 'vidsrcvip', name: 'vidsrc.vip', urls: { movie: 'https://vidsrc.vip/embed/movie/{id}', tv: 'https://vidsrc.vip/embed/tv/{id}/{season}/{episode}' } },
+            { id: 'vidsrccc', name: "VidSrcCC", urls: { movie: "https://vidsrc.cc/v2/embed/movie/{id}?autoPlay=false", tv: "https://vidsrc.cc/v2/embed/tv/{id}/{season}/{episode}?nextEpisode=true&autoPlay=false" } },
+            { id: 'flicky', name: 'Flicky', urls: { movie: 'https://flicky.host/embed/movie/?id={id}', tv: 'https://flicky.host/embed/tv/?id={id}&season={season}&episode={episode}' } },
+            { id: 'wplayme', name: 'Wplay.me', urls: { movie: 'https://embed.wplay.me/embed/movie/{id}', tv: 'https://embed.wplay.me/embed/tv/{id}/{season}/{episode}' } },
+            { id: 'rive', name: 'RiveStream', urls: { movie: 'https://rivestream.org/embed?type=movie&id={id}', tv: 'https://rivestream.org/embed?type=tv&id={id}&season={season}&episode={episode}' } },
+            { id: 'vidpop', name: 'Vidpop', urls: { movie: 'https://www.vidpop.xyz/embed/?id={id}', tv: 'https://www.vidpop.xyz/embed/?id={id}&season={season}&episode={episode}' } },
+            { id: 'vidjoy', name: 'VidJoy', urls: { movie: 'https://vidjoy.pro/embed/movie/{id}', tv: 'https://vidjoy.pro/embed/tv/{id}/{season}/{episode}' } },
+            { id: 'pstream', name: 'P-Stream', urls: { movie: 'https://iframe.pstream.org/embed/tmdb-movie-{id}', tv: 'https://iframe.pstream.org/embed/tmdb-tv-{id}/{season}/{episode}' } }
+        ];
 
-            const BACKEND_URL = 'https://episodetracker11.netlify.app'; 
+        const noSandboxSources = ['videasy', 'vidsrcsu', 'vidsrcvip'];
 
-            let currentPage = 1;
-            let currentMediaType = 'all';
-            let selectedItem = null;
-            let currentEpisode = null;
-            let progressSaveInterval = null;
+        let state = { user: null, type: 'movie', page: 1, query: '', history: {}, current: null, currentEpisodes: [] };
 
-            function getUserId() {
-                let userId = localStorage.getItem('episode_tracker_user_id');
-                if (!userId) {
-                    userId = crypto.randomUUID();
-                    localStorage.setItem('episode_tracker_user_id', userId);
-                }
-                return userId;
-            }
-            const CURRENT_USER_ID = getUserId();
-            console.log("Current User ID:", CURRENT_USER_ID);
+        async function init() {
+            Parse.initialize(CONFIG.PARSE_APP_ID, CONFIG.PARSE_JS_KEY);
+            Parse.serverURL = "https://parseapi.back4app.com";
+            let user = Parse.User.current() || await Parse.User.logIn("vault_user", "vault_pass").catch(() => {
+                const u = new Parse.User(); u.set("username", "vault_user"); u.set("password", "vault_pass"); return u.signUp();
+            });
+            state.user = user;
+            await fetchHistory();
+            renderSources(); fetchGallery(); setupEvents();
+        }
 
-            async function saveEpisodeProgress(tmdbId, mediaType, episodeDetails, timestamp) {
-                if (!tmdbId || !mediaType || typeof timestamp === 'undefined') {
-                    console.warn("Attempted to save progress with missing data:", { tmdbId, mediaType, episodeDetails, timestamp });
-                    return;
-                }
-                const saveUrl = `${BACKEND_URL}api/progress`; 
-                
-                try {
-                    const response = await fetch(saveUrl, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-User-ID': CURRENT_USER_ID
-                        },
-                        body: JSON.stringify({
-                            tmdbId: tmdbId,
-                            mediaType: mediaType,
-                            episode: episodeDetails,
-                            timestamp: timestamp
-                        })
-                    });
+        function formatDate(date) {
+            if (!date) return "--/--/----";
+            const d = new Date(date);
+            return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+        }
 
-                    if (!response.ok) {
-                        const errorText = await response.text();
-                        console.error('Failed to save progress:', response.status, errorText);
-                        return null;
-                    }
-
-                    const result = await response.json();
-                    console.log('Progress saved successfully:', result.progress);
-                    displayContinueWatching();
-                    return result.progress;
-                } catch (error) {
-                    console.error('Error sending save progress request:', error);
-                    return null;
-                }
-            }
-
-            async function getEpisodeProgress(tmdbId) {
-                const getUrl = `${BACKEND_URL}api/progress/${tmdbId}`;
-                
-                try {
-                    const response = await fetch(getUrl, {
-                        method: 'GET',
-                        headers: {
-                            'X-User-ID': CURRENT_USER_ID
-                        }
-                    });
-
-                    if (!response.ok) {
-                        const errorText = await response.text();
-                        console.error('Failed to get progress:', response.status, errorText);
-                        return null;
-                    }
-
-                    const result = await response.json();
-                    if (result) {
-                        console.log('Retrieved progress for single item:', result);
-                    } else {
-                        console.log('No progress found for TMDB ID:', tmdbId);
-                    }
-                    return result;
-                } catch (error) {
-                    console.error('Error sending get progress request (single item):', error);
-                    return null;
-                }
-            }
-
-            async function getAllUserProgress() {
-                const getUrl = `${BACKEND_URL}api/all-progress`;
-                try {
-                    const response = await fetch(getUrl, {
-                        method: 'GET',
-                        headers: {
-                            'X-User-ID': CURRENT_USER_ID
-                        }
-                    });
-
-                    if (!response.ok) {
-                        const errorText = await response.text();
-                        console.error('Failed to get all user progress:', response.status, errorText);
-                        return {};
-                    }
-
-                    const result = await response.json();
-                    console.log('Retrieved all user progress:', result);
-                    return result;
-                } catch (error) {
-                    console.error('Error sending get all user progress request:', error);
-                    return {};
-                }
-            }
-
-            async function deleteEpisodeProgress(tmdbId) {
-                const deleteUrl = `${BACKEND_URL}api/progress/${tmdbId}`;
-                try {
-                    const response = await fetch(deleteUrl, {
-                        method: 'DELETE',
-                        headers: {
-                            'X-User-ID': CURRENT_USER_ID
-                        }
-                    });
-
-                    if (!response.ok) {
-                        const errorText = await response.text();
-                        console.error('Failed to delete progress:', response.status, errorText);
-                        return false;
-                    }
-
-                    console.log(`Progress for TMDB ID ${tmdbId} deleted successfully.`);
-                    displayContinueWatching();
-                    return true;
-                } catch (error) {
-                    console.error('Error sending delete progress request:', error);
-                    return false;
-                }
-            }
-            
-            async function displayContinueWatching() {
-                CONTINUE_WATCHING_MESSAGE.style.display = 'none';
-
-                const allProgressData = await getAllUserProgress();
-                const progressItemsArray = Object.keys(allProgressData).map(tmdbId => ({
-                    tmdbId: tmdbId,
-                    ...allProgressData[tmdbId]
-                }));
-
-                progressItemsArray.sort((a, b) => b.lastUpdated - a.lastUpdated);
-
-                if (progressItemsArray.length === 0) {
-                    CONTINUE_WATCHING_MESSAGE.style.display = 'block';
-                    CONTINUE_WATCHING_GALLERY.innerHTML = '';
-                    return;
-                }
-
-                const itemsToDisplay = progressItemsArray.slice(0, 10);
-                const currentItems = Array.from(CONTINUE_WATCHING_GALLERY.children);
-                const currentTmdbIds = new Set(currentItems.map(item => item.dataset.tmdbId));
-                const newTmdbIds = new Set(itemsToDisplay.map(item => item.tmdbId));
-
-                currentItems.forEach(item => {
-                    if (!newTmdbIds.has(item.dataset.tmdbId)) {
-                        CONTINUE_WATCHING_GALLERY.removeChild(item);
-                    }
-                });
-
-                for (const progressItem of itemsToDisplay) {
-                    const tmdbId = progressItem.tmdbId;
-                    const existingItem = document.querySelector(`#continueWatchingGallery .gallery-item[data-tmdb-id="${tmdbId}"]`);
+        async function fetchHistory() {
+            const query = new Parse.Query("WatchedItem");
+            query.equalTo("user", state.user);
+            query.descending("watchedDate");
+            try {
+                const results = await query.find();
+                state.history = {};
+                results.forEach(item => {
+                    const tmdbId = item.get("tmdbId");
+                    const s = item.get("lastWatchedSeason");
+                    const e = item.get("lastWatchedEpisode");
                     
-                    try {
-                        const type = progressItem.mediaType;
-                        const id = progressItem.tmdbId;
-                        let itemDetails = null;
+                    if(!state.history[tmdbId]) state.history[tmdbId] = {};
+                    
+                    state.history[tmdbId][`${s}-${e}`] = {
+                        id: item.id,
+                        obj: item,
+                        type: item.get("mediaType"),
+                        season: s,
+                        episode: e,
+                        title: item.get("title"),
+                        poster: item.get("posterPath"),
+                        watchedDate: item.get("watchedDate") || item.updatedAt
+                    };
+                });
+                renderHistory(); renderGallery();
+            } catch (e) { console.error(e); }
+        }
 
-                        const detailResponse = await fetch(`${BASE_URL}/${type}/${id}?api_key=${API_KEY}`);
-                        if (detailResponse.ok) {
-                            itemDetails = await detailResponse.json();
-                        } else {
-                            console.warn(`Failed to fetch TMDB details for ${type} ID ${id}`);
-                            continue;
-                        }
-
-                        const title = itemDetails.title || itemDetails.name;
-                        const posterPath = itemDetails.poster_path;
-                        const minutes = Math.floor(progressItem.timestamp / 60);
-                        const seconds = progressItem.timestamp % 60;
-                        let progressText = '';
-
-                        if (type === 'movie') {
-                            progressText = `<div class="progress-indicator">Last watched: ${minutes}m ${seconds}s</div>`;
-                        } else {
-                            if (progressItem.episode && typeof progressItem.episode.season !== 'undefined' && typeof progressItem.episode.episode !== 'undefined') {
-                                progressText = `<div class="progress-indicator">S${progressItem.episode.season} E${progressItem.episode.episode} at ${minutes}m ${seconds}s</div>`;
-                            } else {
-                                progressText = `<div class="progress-indicator">Last watched: ${minutes}m ${seconds}s</div>`;
-                            }
-                        }
-
-                        if (existingItem) {
-                            const progressIndicator = existingItem.querySelector('.progress-indicator');
-                            if (progressIndicator) {
-                                progressIndicator.outerHTML = progressText;
-                            }
-                        } else {
-                            const itemElement = document.createElement('div');
-                            itemElement.classList.add('gallery-item');
-                            itemElement.dataset.tmdbId = id;
-                            itemElement.innerHTML = `
-                                <img src="${IMAGE_URL}${posterPath}" onerror="this.onerror=null;this.src='https://placehold.co/120x180/000/fff?text=No+Image';" alt="${title}">
-                                <div class="item-details">
-                                    <h4>${title}</h4>
-                                    <p>${type === 'movie' ? 'Movie' : 'TV Show'}</p>
-                                    ${progressText}
-                                </div>
-                                <button class="close-button">&times;</button>
-                            `;
-                            
-                            itemElement.addEventListener('click', (event) => {
-                                if (!event.target.classList.contains('close-button')) {
-                                    selectedItem = itemDetails;
-                                    playVideo(selectedItem);
-                                }
-                            });
-
-                            const closeButton = itemElement.querySelector('.close-button');
-                            closeButton.addEventListener('click', (event) => {
-                                event.stopPropagation();
-                                const confirmDelete = confirm('Are you sure you want to remove this from Continue Watching?'); 
-                                if (confirmDelete) {
-                                    deleteEpisodeProgress(id);
-                                }
-                            });
-                            CONTINUE_WATCHING_GALLERY.appendChild(itemElement);
-                        }
-
-                    } catch (error) {
-                        console.error('Error processing continue watching item:', progressItem, error);
-                    }
-                }
+        async function saveToWatched(item, s = 0, e = 0) {
+            const WatchedItem = Parse.Object.extend("WatchedItem");
+            const tmdbId = item.id.toString();
+            const key = `${s}-${e}`;
+            
+            let record;
+            if (state.history[tmdbId] && state.history[tmdbId][key]) {
+                record = state.history[tmdbId][key].obj;
             }
             
-            async function fetchTrendingContent(mediaType, pageNumber = 1) {
-                let url;
-                if (mediaType === 'all') {
-                    url = `${BASE_URL}/trending/all/week?api_key=${API_KEY}&page=${pageNumber}`;
-                } else {
-                    url = `${BASE_URL}/trending/${mediaType}/week?api_key=${API_KEY}&page=${pageNumber}`;
-                }
+            if (!record) record = new WatchedItem();
+
+            record.set("user", state.user); 
+            record.set("tmdbId", tmdbId);
+            record.set("mediaType", state.type); 
+            record.set("lastWatchedSeason", parseInt(s));
+            record.set("lastWatchedEpisode", parseInt(e)); 
+            record.set("title", item.title || item.name);
+            record.set("posterPath", item.poster_path); 
+            record.set("watchedDate", new Date());
+            
+            try {
+                const saved = await record.save();
+                if(!state.history[tmdbId]) state.history[tmdbId] = {};
                 
-                try {
-                    const response = await fetch(url);
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    const data = await response.json();
-                    if (pageNumber === 1) {
-                        displayTrendingGallery(data.results);
-                    } else {
-                        appendTrendingGallery(data.results);
-                    }
-                    if (data.page < data.total_pages) {
-                        LOAD_MORE_BTN.style.display = 'block';
-                    } else {
-                        LOAD_MORE_BTN.style.display = 'none';
-                    }
+                state.history[tmdbId][key] = {
+                    id: saved.id,
+                    obj: saved, type: state.type, season: s, episode: e,
+                    title: item.title || item.name, poster: item.poster_path, watchedDate: new Date()
+                };
+                renderHistory(); renderGallery();
+            } catch (err) { console.error(err); }
+        }
 
-                    if (data.results.length > 0 && !selectedItem) {
-                        selectedItem = data.results[0];
-                        playVideo(selectedItem);
-                    }
-                } catch (error) {
-                    console.error('Failed to fetch trending content:', error);
-                    GALLERY_CONTAINER.innerHTML = '<p>Failed to load content. Please try again later.</p>';
-                    LOAD_MORE_BTN.style.display = 'none';
+        async function deleteHistoryItem(tmdbId, event) {
+            event.stopPropagation();
+            try {
+                const query = new Parse.Query("WatchedItem");
+                query.equalTo("user", state.user);
+                query.equalTo("tmdbId", tmdbId);
+                const results = await query.find();
+                await Parse.Object.destroyAll(results);
+                delete state.history[tmdbId];
+                renderHistory(); 
+                renderGallery();
+                if (state.current && state.current.id.toString() === tmdbId) {
+                    const s = document.getElementById('seasonSelect').value;
+                    const e = document.getElementById('episodeSelect').value;
+                    updateEpisodeDropdown(s, e);
                 }
-            }
+            } catch (err) { console.error(err); }
+        }
 
-            function displayTrendingGallery(contentList) {
-                GALLERY_CONTAINER.innerHTML = '';
-                contentList.forEach(item => {
-                    const isMovie = item.media_type === 'movie' || (currentMediaType === 'movie' && item.media_type === undefined);
-                    const title = item.title || item.name;
-                    const itemElement = document.createElement('div');
-                    itemElement.classList.add('gallery-item-trending');
-                    itemElement.innerHTML = `
-                        <img src="${IMAGE_URL}${item.poster_path}" onerror="this.onerror=null;this.src='https://placehold.co/120x180/000/fff?text=No+Image';" alt="${title}">
-                        <div class="item-details">
-                            <h4>${title}</h4>
-                            <p>${isMovie ? 'Movie' : 'TV Show'}</p>
-                            <button class="trailer-button" data-id="${item.id}" data-type="${item.media_type || currentMediaType}">Watch Trailer</button>
+        function renderHistory() {
+            const grid = document.getElementById('historyGrid');
+            const section = document.getElementById('historySection');
+            const uniqueShowsLatest = [];
+            for (const tmdbId in state.history) {
+                const episodes = Object.values(state.history[tmdbId]);
+                const latest = episodes.sort((a,b) => b.watchedDate - a.watchedDate)[0];
+                uniqueShowsLatest.push({ tmdbId, ...latest });
+            }
+            const sortedRecent = uniqueShowsLatest.sort((a,b) => b.watchedDate - a.watchedDate).slice(0, 8);
+            if (sortedRecent.length === 0) { section.classList.add('hidden'); return; }
+            section.classList.remove('hidden');
+            grid.innerHTML = sortedRecent.map((data) => {
+                return `
+                <div class="history-card relative flex items-center gap-4 p-3 bg-[#131313] rounded-2xl cursor-pointer hover:bg-white/5 transition-all border border-white/5 shadow-lg" 
+                     onclick="loadContent(${data.tmdbId}, '${data.type}', ${data.season}, ${data.episode})">
+                    <div onclick="deleteHistoryItem('${data.tmdbId}', event)" class="delete-btn">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </div>
+                    <div class="w-14 h-20 flex-shrink-0 overflow-hidden rounded-xl">
+                        <img src="https://image.tmdb.org/t/p/w200${data.poster}" class="w-full h-full object-cover">
+                    </div>
+                    <div class="overflow-hidden">
+                        <h4 class="text-sm font-bold truncate text-white mb-1">${data.title}</h4>
+                        <div class="flex flex-col gap-0.5">
+                             <span class="text-[10px] text-purple-400 font-extrabold uppercase tracking-wider">${data.type === 'tv' ? `S${data.season} E${data.episode}` : 'Movie'}</span>
+                             <span class="text-[9px] text-gray-500 font-semibold">Watched: ${formatDate(data.watchedDate)}</span>
                         </div>
-                    `;
-                    itemElement.addEventListener('click', (event) => {
-                        if (!event.target.classList.contains('trailer-button')) {
-                            selectedItem = item;
-                            playVideo(selectedItem);
-                        }
-                    });
-                    GALLERY_CONTAINER.appendChild(itemElement);
-                });
-            }
+                    </div>
+                </div>
+            `}).join('');
+        }
 
-            function appendTrendingGallery(contentList) {
-                contentList.forEach(item => {
-                    const isMovie = item.media_type === 'movie' || (currentMediaType === 'movie' && item.media_type === undefined);
-                    const title = item.title || item.name;
-                    const itemElement = document.createElement('div');
-                    itemElement.classList.add('gallery-item-trending');
-                    itemElement.innerHTML = `
-                        <img src="${IMAGE_URL}${item.poster_path}" onerror="this.onerror=null;this.src='https://placehold.co/120x180/000/fff?text=No+Image';" alt="${title}">
-                        <div class="item-details">
-                            <h4>${title}</h4>
-                            <p>${isMovie ? 'Movie' : 'TV Show'}</p>
-                            <button class="trailer-button" data-id="${item.id}" data-type="${item.media_type || currentMediaType}">Watch Trailer</button>
-                        </div>
-                    `;
-                    itemElement.addEventListener('click', (event) => {
-                        if (!event.target.classList.contains('trailer-button')) {
-                            selectedItem = item;
-                            playVideo(selectedItem);
-                        }
-                    });
-                    GALLERY_CONTAINER.appendChild(itemElement);
-                });
-            }
+        async function fetchGallery() {
+            const url = state.query 
+                ? `https://api.themoviedb.org/3/search/${state.type}?api_key=${CONFIG.TMDB_KEY}&query=${encodeURIComponent(state.query)}&page=${state.page}`
+                : `https://api.themoviedb.org/3/${state.type}/popular?api_key=${CONFIG.TMDB_KEY}&page=${state.page}`;
+            const res = await fetch(url); const data = await res.json();
+            galleryData = data.results; renderGallery();
+            document.getElementById('pageTxt').innerText = `Page ${data.page}`;
+            document.getElementById('prevBtn').disabled = data.page <= 1;
+        }
 
-            async function fetchTrailer(mediaType, tmdbId) {
-                try {
-                    const response = await fetch(`${BASE_URL}/${mediaType}/${tmdbId}/videos?api_key=${API_KEY}`);
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    const data = await response.json();
-                    const trailer = data.results.find(video => video.site === 'YouTube' && video.type === 'Trailer');
-                    return trailer ? `https://www.youtube.com/embed/${trailer.key}` : null;
-                } catch (error) {
-                    console.error('Failed to fetch trailer:', error);
-                    return null;
+        function renderGallery() {
+            const grid = document.getElementById('galleryGrid');
+            grid.innerHTML = galleryData.map(item => {
+                const historyObj = state.history[item.id.toString()] || {};
+                const episodes = Object.values(historyObj);
+                const watchData = episodes.sort((a,b) => b.watchedDate - a.watchedDate)[0];
+                let bannerHtml = watchData ? `<div class="watched-banner">${watchData.type === 'tv' ? `S${watchData.season} E${watchData.episode}` : 'Movie'} Last Watched: ${formatDate(watchData.watchedDate)}</div>` : '';
+                return `
+                <div class="gallery-card relative group cursor-pointer" onclick="loadContent(${item.id}, '${state.type}', ${watchData?.season || 1}, ${watchData?.episode || 1})">
+                    <div class="aspect-[2/3] rounded-2xl overflow-hidden bg-[#1a1a1a] mb-3 shadow-xl border border-white/5 relative">
+                        <img src="https://image.tmdb.org/t/p/w400${item.poster_path}" class="w-full h-full object-cover group-hover:scale-110 transition duration-700">
+                        ${bannerHtml}
+                    </div>
+                    <h4 class="text-sm font-bold truncate px-1 text-gray-200">${item.title || item.name}</h4>
+                    <p class="text-xs text-gray-500 px-1 mt-0.5">${(item.release_date || item.first_air_date || '').split('-')[0] || 'N/A'}</p>
+                </div>
+                `;
+            }).join('');
+        }
+
+        async function loadContent(id, type, s = 1, e = 1) {
+            state.type = type; 
+            const res = await fetch(`https://api.themoviedb.org/3/${type}/${id}?api_key=${CONFIG.TMDB_KEY}`);
+            state.current = await res.json();
+            document.getElementById('playerSection').classList.remove('hidden');
+            document.getElementById('playerTitle').innerText = state.current.title || state.current.name;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            if (type === 'tv') {
+                document.getElementById('tvSelectors').classList.remove('hidden');
+                document.getElementById('episodeInfo').classList.remove('hidden');
+                const seasons = state.current.seasons.filter(x => x.season_number > 0);
+                const sSelect = document.getElementById('seasonSelect');
+                sSelect.innerHTML = seasons.map(x => `<option value="${x.season_number}">Season ${x.season_number}</option>`).join('');
+                sSelect.value = s; 
+                await updateEpisodes(s, e);
+            } else {
+                document.getElementById('tvSelectors').classList.add('hidden');
+                document.getElementById('episodeInfo').classList.add('hidden');
+                document.getElementById('playerSub').innerText = "Movie Stream";
+                updatePlayer(); 
+                saveToWatched(state.current);
+            }
+        }
+
+        async function updateEpisodes(sNum, eNum = 1) {
+            const res = await fetch(`https://api.themoviedb.org/3/tv/${state.current.id}/season/${sNum}?api_key=${CONFIG.TMDB_KEY}`);
+            const data = await res.json();
+            state.currentEpisodes = data.episodes;
+            updateEpisodeDropdown(sNum, eNum);
+            updateEpisodeDetails(eNum);
+            updatePlayer(); 
+            saveToWatched(state.current, sNum, eNum);
+        }
+
+        function updateEpisodeDropdown(sNum, currentENum) {
+            const eSelect = document.getElementById('episodeSelect');
+            const historyForThisShow = state.history[state.current.id.toString()] || {};
+            eSelect.innerHTML = state.currentEpisodes.map(ep => {
+                const key = `${sNum}-${ep.episode_number}`;
+                const isWatched = !!historyForThisShow[key];
+                return `<option value="${ep.episode_number}" class="${isWatched ? 'ep-watched' : ''}">
+                    ${isWatched ? '✓ ' : ''}Episode ${ep.episode_number}
+                </option>`;
+            }).join('');
+            if (currentENum) eSelect.value = currentENum;
+        }
+
+        function updateEpisodeDetails(eNum) {
+            const episode = state.currentEpisodes.find(ep => ep.episode_number == eNum);
+            if (!episode) return;
+            document.getElementById('playerSub').innerText = `Season ${episode.season_number} • Episode ${eNum}`;
+            document.getElementById('epTitleDisplay').innerText = episode.name;
+            document.getElementById('epOverview').innerText = episode.overview || "No description available for this episode.";
+            const stillUrl = episode.still_path ? `https://image.tmdb.org/t/p/w500${episode.still_path}` : `https://image.tmdb.org/t/p/w500${state.current.backdrop_path}`;
+            document.getElementById('episodeStill').src = stillUrl;
+            const sNum = document.getElementById('seasonSelect').value;
+            const maxEpisodes = state.currentEpisodes.length;
+            const maxSeasons = state.current.seasons.filter(x => x.season_number > 0).length;
+            document.getElementById('prevEpBtn').disabled = (eNum <= 1 && sNum <= 1);
+            document.getElementById('nextEpBtn').disabled = (eNum >= maxEpisodes && sNum >= maxSeasons);
+        }
+
+        function updatePlayer() {
+            const srcId = document.getElementById('srcSelect').value;
+            const src = availableSources.find(x => x.id === srcId) || availableSources[0];
+            const player = document.getElementById('mainPlayer');
+            const s = document.getElementById('seasonSelect').value || 1; 
+            const e = document.getElementById('episodeSelect').value || 1;
+            if (noSandboxSources.includes(src.id)) { player.removeAttribute('sandbox'); } else { player.setAttribute('sandbox', 'allow-forms allow-pointer-lock allow-same-origin allow-scripts allow-top-navigation'); }
+            const url = state.type === 'movie' ? src.urls.movie.replace('{id}', state.current.id) : src.urls.tv.replace('{id}', state.current.id).replace('{season}', s).replace('{episode}', e);
+            player.src = url;
+        }
+
+        async function navigateEpisode(dir) {
+            let s = parseInt(document.getElementById('seasonSelect').value);
+            let e = parseInt(document.getElementById('episodeSelect').value);
+            const maxE = state.currentEpisodes.length;
+            if (dir === 'next') {
+                if (e < maxE) { e++; } else {
+                    const seasons = state.current.seasons.filter(x => x.season_number > 0);
+                    if (s < seasons.length) { s++; e = 1; document.getElementById('seasonSelect').value = s; await updateEpisodes(s, e); return; }
+                }
+            } else {
+                if (e > 1) { e--; } else if (s > 1) {
+                    s--; document.getElementById('seasonSelect').value = s;
+                    const res = await fetch(`https://api.themoviedb.org/3/tv/${state.current.id}/season/${s}?api_key=${CONFIG.TMDB_KEY}`);
+                    const data = await res.json(); e = data.episodes.length; await updateEpisodes(s, e); return;
                 }
             }
+            document.getElementById('episodeSelect').value = e;
+            updateEpisodeDetails(e); updateEpisodeDropdown(s, e); updatePlayer(); saveToWatched(state.current, s, e);
+        }
 
-            async function playTrailer(event) {
-                event.stopPropagation();
-                const button = event.target;
-                const mediaId = button.dataset.id;
-                const mediaType = button.dataset.type;
+        function renderSources() { document.getElementById('srcSelect').innerHTML = availableSources.map(x => `<option value="${x.id}">${x.name}</option>`).join(''); }
 
-                const trailerUrl = await fetchTrailer(mediaType, mediaId);
-
-                if (trailerUrl) {
-                    if (progressSaveInterval) {
-                        clearInterval(progressSaveInterval);
-                        progressSaveInterval = null;
-                    }
-                    VIDEO_PLAYER.src = trailerUrl;
-                    VIDEO_TITLE.textContent = `${button.closest('.gallery-item-trending').querySelector('h4').textContent} Trailer`;
-                    VIDEO_OVERVIEW.textContent = '';
-                    SOURCE_SELECT.style.display = 'none';
-                    EPISODE_LIST_SECTION.style.display = 'none';
-                    EPISODE_NAV_CONTAINER.style.display = 'none';
-                } else {
-                    alert("Sorry, no trailer was found for this content.");
-                }
-            }
-
-            function populateSourceSelector() {
-                SOURCE_SELECT.innerHTML = '';
-                availableSources.forEach(source => {
-                    const option = document.createElement('option');
-                    option.value = source.id;
-                    option.textContent = source.name;
-                    SOURCE_SELECT.appendChild(option);
-                });
-                SOURCE_SELECT.value = 'videasy';
-            }
-            
-            async function fetchEpisodeList(tmdbId, seasonNumber) {
-                EPISODES_CONTAINER.innerHTML = 'Loading episodes...';
-                try {
-                    const response = await fetch(`${BASE_URL}/tv/${tmdbId}/season/${seasonNumber}?api_key=${API_KEY}`);
-                    if (!response.ok) {
-                        throw new Error('Failed to fetch episode list');
-                    }
-                    const data = await response.json();
-                    displayEpisodeList(data.episodes);
-                } catch (error) {
-                    console.error('Error fetching episodes:', error);
-                    EPISODES_CONTAINER.innerHTML = '<p>Could not load episodes. Please try again.</p>';
-                }
-            }
-
-            function displayEpisodeList(episodes) {
-                EPISODES_CONTAINER.innerHTML = '';
-                if (episodes && episodes.length > 0) {
-                    episodes.forEach(episode => {
-                        const episodeElement = document.createElement('div');
-                        episodeElement.classList.add('episode-item');
-                        episodeElement.dataset.season = episode.season_number;
-                        episodeElement.dataset.episode = episode.episode_number;
-                        episodeElement.innerHTML = `
-                            <img src="${IMAGE_URL}${episode.still_path}" onerror="this.onerror=null;this.src='https://placehold.co/100x56/000/fff?text=No+Image';" alt="S${episode.season_number}E${episode.episode_number}">
-                            <div class="episode-info">
-                                <h4>S${episode.season_number} E${episode.episode_number}: ${episode.name}</h4>
-                                <p>${episode.overview ? episode.overview.substring(0, 100) + '...' : 'No overview available.'}</p>
-                            </div>
-                        `;
-                        episodeElement.addEventListener('click', () => {
-                            currentEpisode = { season: episode.season_number, episode: episode.episode_number };
-                            playVideo(selectedItem, currentEpisode);
-                        });
-                        EPISODES_CONTAINER.appendChild(episodeElement);
-                    });
-                } else {
-                    EPISODES_CONTAINER.innerHTML = '<p>No episodes found for this season.</p>';
-                }
-            }
-
-            async function playVideo(item, episodeDetails = null) {
-                if (progressSaveInterval) {
-                    clearInterval(progressSaveInterval);
-                }
-
-                const sourceId = SOURCE_SELECT.value;
-                const source = availableSources.find(s => s.id === sourceId);
-                if (!source) return;
-
-                const type = item.media_type || currentMediaType;
-                const id = item.id;
-                
-                VIDEO_TITLE.textContent = item.title || item.name;
-                VIDEO_OVERVIEW.textContent = item.overview;
-                SOURCE_SELECT.style.display = 'flex';
-                EPISODE_LIST_SECTION.style.display = 'none';
-                EPISODE_NAV_CONTAINER.style.display = 'none';
-
-                let url = '';
-                let episodeToPlay = episodeDetails;
-
-                if (type === 'movie' && source.urls.movie) {
-                    url = source.urls.movie.replace('{id}', id);
-                    EPISODE_LIST_SECTION.style.display = 'none';
-                } else if (type === 'tv' && source.urls.tv) {
-                    EPISODE_LIST_SECTION.style.display = 'block';
-                    EPISODE_NAV_CONTAINER.style.display = 'flex';
-
-                    if (!episodeToPlay) {
-                        const tvDataResponse = await fetch(`${BASE_URL}/tv/${id}?api_key=${API_KEY}`);
-                        const tvData = await tvDataResponse.json();
-                        episodeToPlay = {
-                            season: tvData.last_episode_to_air?.season_number || 1,
-                            episode: tvData.last_episode_to_air?.episode_number || 1
-                        };
-                        currentEpisode = episodeToPlay;
-                    }
-                    url = source.urls.tv.replace('{id}', id).replace('{season}', episodeToPlay.season).replace('{episode}', episodeToPlay.episode);
-                    fetchEpisodeList(id, episodeToPlay.season);
-                }
-
-                VIDEO_PLAYER.src = url;
-
-                const savedProgress = await getEpisodeProgress(id);
-                if (savedProgress && savedProgress.timestamp > 0) {
-                    console.log(`Loaded progress for ${item.title || item.name}: ${savedProgress.timestamp} seconds.`);
-                }
-
-                progressSaveInterval = setInterval(() => {
-                    const dummyTimestamp = (Math.floor(Date.now() / 1000) % 3600);
-                    saveEpisodeProgress(id, type, episodeToPlay, dummyTimestamp);
-                }, 10000);
-
-                VIDEO_PLAYER.onload = () => {};
-            }
-
-            async function navigateEpisode(direction) {
-                if (!selectedItem || selectedItem.media_type !== 'tv' || !currentEpisode) return;
-
-                const tvShowId = selectedItem.id;
-                let nextSeason = currentEpisode.season;
-                let nextEpisode = currentEpisode.episode + direction;
-
-                try {
-                    const seasonResponse = await fetch(`${BASE_URL}/tv/${tvShowId}/season/${nextSeason}?api_key=${API_KEY}`);
-                    const seasonData = await seasonResponse.json();
-                    
-                    if (nextEpisode < 1) {
-                        nextSeason--;
-                        const prevSeasonResponse = await fetch(`${BASE_URL}/tv/${tvShowId}/season/${nextSeason}?api_key=${API_KEY}`);
-                        const prevSeasonData = await prevSeasonResponse.json();
-                        nextEpisode = prevSeasonData.episodes.length;
-                    } else if (nextEpisode > seasonData.episodes.length) {
-                        nextSeason++;
-                        nextEpisode = 1;
-                    }
-                    
-                    const nextEpisodeData = seasonData.episodes.find(ep => ep.episode_number === nextEpisode);
-                    if (nextEpisodeData) {
-                        currentEpisode = { season: nextSeason, episode: nextEpisode };
-                        playVideo(selectedItem, currentEpisode);
-                    } else {
-                        console.log("No next/previous episode found.");
-                    }
-                } catch (error) {
-                    console.error('Error navigating episodes:', error);
-                }
-            }
-
-            function switchMediaType(type) {
-                currentMediaType = type;
-                currentPage = 1;
-                document.querySelectorAll('.media-buttons button').forEach(btn => btn.classList.remove('active'));
-                const activeBtn = document.getElementById(`show${type.charAt(0).toUpperCase() + type.slice(1)}Btn`);
-                if (activeBtn) activeBtn.classList.add('active');
-                
-                EPISODE_LIST_SECTION.style.display = 'none';
-                EPISODE_NAV_CONTAINER.style.display = 'none';
-                fetchTrendingContent(currentMediaType, currentPage);
-            }
-
-            SOURCE_SELECT.addEventListener('change', () => {
-                if (selectedItem) {
-                    playVideo(selectedItem, currentEpisode);
-                }
-            });
-
-            GALLERY_CONTAINER.addEventListener('click', (event) => {
-                if (event.target.classList.contains('trailer-button')) {
-                    playTrailer(event);
-                }
-            });
-
-            SHOW_ALL_BTN.addEventListener('click', () => switchMediaType('all'));
-            SHOW_MOVIES_BTN.addEventListener('click', () => switchMediaType('movie'));
-            SHOW_TV_BTN.addEventListener('click', () => switchMediaType('tv'));
-
-            LOAD_MORE_BTN.addEventListener('click', () => {
-                currentPage++;
-                fetchTrendingContent(currentMediaType, currentPage);
-            });
-
-            PREV_EPISODE_BTN.addEventListener('click', () => navigateEpisode(-1));
-            NEXT_EPISODE_BTN.addEventListener('click', () => navigateEpisode(1));
-
-            window.addEventListener('beforeunload', () => {
-                if (progressSaveInterval) {
-                    clearInterval(progressSaveInterval);
-                }
-            });
-
-            async function loadAllContent() {
-                populateSourceSelector();
-                await displayContinueWatching();
-                fetchTrendingContent(currentMediaType, currentPage);
-            }
-
-            loadAllContent();
-        });
+        function setupEvents() {
+            document.getElementById('showMoviesBtn').onclick = () => { state.type = 'movie'; state.page = 1; document.getElementById('showMoviesBtn').classList.add('bg-purple'); document.getElementById('showTvBtn').classList.remove('bg-purple'); fetchGallery(); };
+            document.getElementById('showTvBtn').onclick = () => { state.type = 'tv'; state.page = 1; document.getElementById('showTvBtn').classList.add('bg-purple'); document.getElementById('showMoviesBtn').classList.remove('bg-purple'); fetchGallery(); };
+            document.getElementById('searchInput').oninput = (e) => { state.query = e.target.value; state.page = 1; fetchGallery(); };
+            document.getElementById('prevBtn').onclick = () => { if (state.page > 1) { state.page--; fetchGallery(); } };
+            document.getElementById('nextBtn').onclick = () => { state.page++; fetchGallery(); };
+            document.getElementById('srcSelect').onchange = updatePlayer;
+            document.getElementById('seasonSelect').onchange = (e) => updateEpisodes(e.target.value);
+            document.getElementById('episodeSelect').onchange = (e) => {
+                const s = document.getElementById('seasonSelect').value;
+                const eVal = e.target.value;
+                updateEpisodeDetails(eVal); updateEpisodeDropdown(s, eVal); updatePlayer(); saveToWatched(state.current, s, eVal);
+            };
+            document.getElementById('prevEpBtn').onclick = () => navigateEpisode('prev');
+            document.getElementById('nextEpBtn').onclick = () => navigateEpisode('next');
+        }
+        init();
     </script>
 </body>
 </html>
+
