@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LiveSports | Premium Streaming</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] },
+                    colors: {
+                        'netflix-red': '#E50914',
+                        'netflix-dark': '#0a0a0a',
+                        'netflix-medium': '#141414',
+                        'netflix-light': '#1f1f1f',
+                        'accent-glow': 'rgba(229, 9, 20, 0.15)'
+                    }
+                }
+            }
+        }
+    </script>
+    <script type="module">
+        import { createIcons, ChevronUp, ChevronDown, Maximize, Minimize, Search, PlayCircle, Layers, Monitor } from 'https://unpkg.com/lucide@latest';
+        createIcons({ icons: { ChevronUp, ChevronDown, Maximize, Minimize, Search, PlayCircle, Layers, Monitor } });
+    </script>
+    <style>
+        body { background-color: #0a0a0a; color: #f4f4f5; overflow: hidden; }
+        
+        /* Modern Scrollbar */
+        #match-list-container::-webkit-scrollbar { width: 4px; }
+        #match-list-container::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 10px; }
+        #match-list-container::-webkit-scrollbar-thumb:hover { background: #E50914; }
+
+        .glass-panel {
+            background: rgba(20, 20, 20, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .match-item {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid transparent;
+        }
+
+        .match-item.active-match {
+            background: linear-gradient(90deg, rgba(229, 9, 20, 0.1) 0%, rgba(20, 20, 20, 1) 100%);
+            border-left: 3px solid #E50914;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .live-pulse {
+            width: 8px; height: 8px; background: #ef4444; border-radius: 50%;
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 1);
+            animation: pulse-red 2s infinite;
+        }
+
+        @keyframes pulse-red {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        .player-glow { box-shadow: 0 0 40px -10px rgba(229, 9, 20, 0.3); }
+        
+        @media (max-width: 768px) {
+            body { overflow-y: auto; }
+            #main-content-area { flex-direction: column; height: auto; }
+            #left-panel { width: 100% !important; height: 500px; }
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+
+    <nav class="h-16 glass-panel border-b border-white/5 flex items-center px-6 justify-between z-50">
+        <div class="flex items-center space-x-8">
+            <div class="flex flex-col">
+                <span class="text-2xl font-extrabold tracking-tighter text-netflix-red leading-none">LIVESPORTS</span>
+                <span class="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-bold">Premium Arena</span>
+            </div>
+            <div class="hidden md:flex items-center space-x-4 bg-black/40 px-4 py-1.5 rounded-full border border-white/5">
+                <div class="live-pulse"></div>
+                <span id="player-status-text" class="text-sm font-semibold text-gray-300 truncate max-w-[400px]">
+                    Select a fixture to begin
+                </span>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-4">
+             <a href="https://mysite2026.netlify.app/basementtv.html" class="text-xs font-bold text-gray-400 hover:text-white transition">MOVIES</a>
+            <button id="theater-mode-btn" onclick="toggleTheaterMode()" class="bg-white/5 hover:bg-white/10 text-white px-4 py-2 rounded-xl text-sm font-bold transition flex items-center space-x-2 border border-white/10">
+                <i data-lucide="maximize" class="w-4 h-4"></i>
+                <span class="hidden sm:inline">Theater</span>
+            </button>
+        </div>
+    </nav>
+
+    <main id="main-content-area" class="flex flex-1 overflow-hidden transition-all duration-500">
+        
+        <aside id="left-panel" class="w-[380px] flex flex-col bg-netflix-dark border-r border-white/5 z-20">
+            <div class="p-5 space-y-4">
+                <div class="relative group">
+                    <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-netflix-red transition-colors"></i>
+                    <input type="text" id="match-search" placeholder="Search matches, leagues..." 
+                           class="w-full bg-netflix-medium border border-white/5 rounded-xl py-3 pl-10 pr-4 text-sm focus:ring-1 focus:ring-netflix-red outline-none transition-all placeholder:text-gray-600">
+                </div>
+
+                <div class="flex space-x-2">
+                    <select id="sport-selector" class="flex-1 bg-netflix-medium border border-white/5 rounded-xl py-2 px-3 text-xs font-bold uppercase tracking-wider outline-none cursor-pointer hover:bg-netflix-light transition">
+                        <option value="live">🔥 Live Now</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="relative flex-1 overflow-hidden">
+                <div id="match-list-container" class="h-full overflow-y-auto px-4 pb-20 space-y-3">
+                    <div id="match-list" class="space-y-3">
+                        <div class="h-24 bg-white/5 rounded-2xl animate-pulse"></div>
+                        <div class="h-24 bg-white/5 rounded-2xl animate-pulse"></div>
+                    </div>
+                </div>
+
+                <div class="absolute bottom-6 right-6 flex flex-col space-y-2">
+                    <button id="nav-up" class="p-3 bg-netflix-red rounded-full shadow-lg hover:scale-110 transition active:scale-95"><i data-lucide="chevron-up" class="text-white w-5 h-5"></i></button>
+                    <button id="nav-down" class="p-3 bg-netflix-red rounded-full shadow-lg hover:scale-110 transition active:scale-95"><i data-lucide="chevron-down" class="text-white w-5 h-5"></i></button>
+                </div>
+            </div>
+        </aside>
+
+        <section id="right-panel" class="flex-1 overflow-y-auto bg-[#050505] p-6 lg:p-10">
+            <div class="max-w-6xl mx-auto space-y-8">
+                
+                <div id="player-area-1" class="relative rounded-3xl overflow-hidden bg-black player-glow border border-white/5 aspect-video flex items-center justify-center group">
+                    <iframe id="stream-player-1" class="w-full h-full" src="" frameborder="0" sandbox="allow-same-origin allow-scripts" allowfullscreen></iframe>
+                    
+                    <div id="stream-controls-1" class="absolute bottom-6 left-6 right-6 glass-panel p-4 rounded-2xl flex items-center justify-between translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300" style="display: none;">
+                        <div class="flex items-center space-x-4">
+                            <div class="bg-netflix-red p-2 rounded-lg"><i data-lucide="monitor" class="w-4 h-4"></i></div>
+                            <select id="stream-selector-1" class="bg-transparent font-bold text-sm outline-none cursor-pointer"></select>
+                        </div>
+                        <button onclick="toggleSecondPlayer()" class="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2">
+                            <i data-lucide="layers" class="w-4 h-4"></i>
+                            <span>DUAL VIEW</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="player-area-2" class="hidden flex-col space-y-4 animate-in slide-in-from-bottom-4 duration-500">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-sm font-bold uppercase tracking-widest text-gray-500">Secondary Feed</h3>
+                    </div>
+                    <div class="aspect-video bg-black rounded-3xl overflow-hidden border border-white/5">
+                        <iframe id="stream-player-2" class="w-full h-full" src="" frameborder="0" sandbox="allow-same-origin allow-scripts" allowfullscreen></iframe>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="modal" class="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-[100] opacity-0 pointer-events-none transition-all duration-300">
+        <div class="bg-netflix-medium p-8 rounded-3xl border border-netflix-red/30 max-w-sm w-full text-center">
+            <div class="w-16 h-16 bg-netflix-red/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i data-lucide="play-circle" class="text-netflix-red w-8 h-8"></i>
+            </div>
+            <h3 id="modal-title" class="text-xl font-bold mb-2">Notice</h3>
+            <p id="modal-message" class="text-gray-400 text-sm mb-6"></p>
+            <button onclick="hideModal()" class="w-full bg-netflix-red py-3 rounded-xl font-bold hover:brightness-110 transition">Continue</button>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'https://streamed.pk/api';
+        const IMAGE_BASE_URL = 'https://streamed.pk/api/images';
+        const FALLBACK_BADGE_URL = 'https://placehold.co/48x48/141414/E50914?text=⚽';
+        
+        let allMatches = [], fullUnfilteredMatches = [], currentMatchIndex = -1, selectedMatch = null, availableStreams = [], countdownInterval = null, currentSelectedSportName = 'Live Matches', isTheaterMode = false;
+
+        const MAXIMIZE_ICON_HTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></svg>`;
+        const MINIMIZE_ICON_HTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 0 2 2h6"/><path d="M16 21v-3a2 2 0 0 0-2-2H8"/><path d="M3 16h3a2 2 0 0 0 2 2h3"/><path d="M21 8h-3a2 2 0 0 0-2-2H9"/></svg>`;
+
+        // UI Helpers
+        function showModal(title, message) {
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-message').textContent = message;
+            const modalEl = document.getElementById('modal');
+            modalEl.classList.remove('opacity-0', 'pointer-events-none');
+        }
+
+        function hideModal() {
+            document.getElementById('modal').classList.add('opacity-0', 'pointer-events-none');
+        }
+
+        function toggleTheaterMode() {
+            isTheaterMode = !isTheaterMode;
+            const btn = document.getElementById('theater-mode-btn');
+            const leftPanel = document.getElementById('left-panel');
+            
+            if (isTheaterMode) {
+                leftPanel.classList.add('hidden');
+                btn.innerHTML = `${MINIMIZE_ICON_HTML} <span>Standard</span>`;
+            } else {
+                leftPanel.classList.remove('hidden');
+                btn.innerHTML = `${MAXIMIZE_ICON_HTML} <span>Theater</span>`;
+            }
+        }
+
+        // Match Logic
+        async function fetchMatches(sportId) {
+            const listEl = document.getElementById('match-list');
+            listEl.innerHTML = `<div class="p-8 text-center"><div class="live-pulse mx-auto mb-4"></div><p class="text-xs font-bold text-gray-500 uppercase tracking-widest">Scanning Frequencies...</p></div>`;
+            
+            const selectedOption = document.getElementById('sport-selector').querySelector(`option[value="${sportId}"]`);
+            currentSelectedSportName = selectedOption ? selectedOption.textContent : 'Live Matches';
+
+            const data = await safeFetch(`${API_BASE_URL}/${sportId === 'live' ? 'matches/live' : 'matches/' + sportId}`);
+            if (data && Array.isArray(data)) {
+                fullUnfilteredMatches = data.filter(m => m.teams?.home?.name && m.teams?.away?.name);
+                renderMatches(fullUnfilteredMatches, currentSelectedSportName);
+            }
+        }
+
+        function renderMatches(matches, sportName) {
+            allMatches = matches;
+            const listEl = document.getElementById('match-list');
+            listEl.innerHTML = '';
+            
+            if (!matches.length) {
+                listEl.innerHTML = `<p class="text-center text-gray-600 py-10 text-sm">No matches found in this sector.</p>`;
+                return;
+            }
+
+            matches.forEach((match, idx) => {
+                const awayBadge = match.teams?.away?.badge ? `${IMAGE_BASE_URL}/badge/${match.teams.away.badge}.webp` : FALLBACK_BADGE_URL;
+                const homeBadge = match.teams?.home?.badge ? `${IMAGE_BASE_URL}/badge/${match.teams.home.badge}.webp` : FALLBACK_BADGE_URL;
+                
+                const item = document.createElement('div');
+                item.className = `match-item group p-4 rounded-2xl cursor-pointer bg-white/5 border border-white/5 hover:bg-white/10`;
+                item.innerHTML = `
+                    <div class="flex items-center space-x-4">
+                        <div class="flex -space-x-3">
+                            <img src="${awayBadge}" class="w-10 h-10 rounded-full border-2 border-netflix-dark bg-netflix-medium" onerror="this.src='${FALLBACK_BADGE_URL}'">
+                            <img src="${homeBadge}" class="w-10 h-10 rounded-full border-2 border-netflix-dark bg-netflix-medium" onerror="this.src='${FALLBACK_BADGE_URL}'">
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-[10px] font-black text-netflix-red uppercase tracking-tighter">${match.category || 'EVENT'}</span>
+                                <span data-match-id="${match.id}" class="countdown-timer text-[10px] font-bold text-gray-500">Live</span>
+                            </div>
+                            <h4 class="text-sm font-bold text-gray-200 truncate group-hover:text-white transition">${match.teams.away.name} <span class="text-gray-600 mx-1">vs</span> ${match.teams.home.name}</h4>
+                        </div>
+                    </div>
+                `;
+                item.onclick = () => handleMatchClick(idx);
+                listEl.appendChild(item);
+            });
+            selectMatch(0);
+            startCountdowns();
+        }
+
+        async function loadMatchStream(match) {
+            selectedMatch = match;
+            const statusText = document.getElementById('player-status-text');
+            statusText.textContent = `Establishing connection: ${match.teams.away.name} vs ${match.teams.home.name}`;
+            
+            let streams = [];
+            for (const source of match.sources) {
+                const data = await safeFetch(`${API_BASE_URL}/stream/${source.source}/${source.id}`);
+                if (data) streams = streams.concat(data.map(s => ({ ...s, source: source.source })));
+            }
+
+            availableStreams = streams.filter((s, i, a) => a.findIndex(x => x.id === s.id) === i);
+            renderStreamSelector(availableStreams);
+        }
+
+        function renderStreamSelector(streams) {
+            const ctrl = document.getElementById('stream-controls-1');
+            const sel = document.getElementById('stream-selector-1');
+            sel.innerHTML = '';
+
+            if (!streams.length) {
+                ctrl.style.display = 'none';
+                showModal('Broadcast Offline', 'We couldn\'t locate any active streams for this event.');
+                return;
+            }
+
+            ctrl.style.display = 'flex';
+            streams.forEach((s, i) => {
+                const opt = document.createElement('option');
+                opt.value = s.id;
+                opt.textContent = `${s.language} ${s.hd ? 'UHD' : 'SD'} - ${s.source.toUpperCase()}`;
+                sel.appendChild(opt);
+                if (i === 0) loadStream(s.embedUrl);
+            });
+
+            sel.onchange = (e) => {
+                const s = availableStreams.find(x => x.id === e.target.value);
+                if (s) loadStream(s.embedUrl);
+            };
+        }
+
+        function loadStream(url) {
+            document.getElementById('stream-player-1').src = url;
+            const statusText = document.getElementById('player-status-text');
+            statusText.textContent = `Streaming: ${selectedMatch.teams.away.name} vs ${selectedMatch.teams.home.name}`;
+        }
+
+        function handleMatchClick(idx) {
+            selectMatch(idx);
+            loadMatchStream(allMatches[idx]);
+        }
+
+        function selectMatch(idx) {
+            currentMatchIndex = idx;
+            const items = document.querySelectorAll('.match-item');
+            items.forEach((item, i) => {
+                item.classList.toggle('active-match', i === idx);
+            });
+        }
+
+        // Core Utilities (Preserved)
+        async function safeFetch(url) {
+            try {
+                const r = await fetch(url);
+                return r.ok ? await r.json() : null;
+            } catch (e) { return null; }
+        }
+
+        function startCountdowns() {
+            if (countdownInterval) clearInterval(countdownInterval);
+            countdownInterval = setInterval(() => {
+                const now = Date.now();
+                document.querySelectorAll('.countdown-timer').forEach(el => {
+                    const m = allMatches.find(x => x.id === el.dataset.matchId);
+                    if (!m) return;
+                    const diff = new Date(m.date).getTime() - now;
+                    if (diff <= 0) {
+                        el.textContent = 'LIVE';
+                        el.classList.add('text-red-500');
+                    } else {
+                        const h = Math.floor(diff / 3600000);
+                        const m = Math.floor((diff % 3600000) / 60000);
+                        el.textContent = `${h}h ${m}m`;
+                    }
+                });
+            }, 1000);
+        }
+
+        function toggleSecondPlayer() {
+            const p2 = document.getElementById('player-area-2');
+            const isHidden = p2.classList.contains('hidden');
+            p2.classList.toggle('hidden');
+            if (!isHidden) document.getElementById('stream-player-2').src = '';
+        }
+
+        // Initialize
+        window.onload = async () => {
+            const sports = await safeFetch(`${API_BASE_URL}/sports`);
+            if (sports) {
+                const sel = document.getElementById('sport-selector');
+                sports.sort((a,b) => a.name.localeCompare(b.name)).forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s.id; opt.textContent = s.name;
+                    sel.appendChild(opt);
+                });
+            }
+            fetchMatches('live');
+            
+            document.getElementById('sport-selector').onchange = (e) => fetchMatches(e.target.value);
+            document.getElementById('match-search').oninput = (e) => {
+                const term = e.target.value.toLowerCase();
+                const filtered = fullUnfilteredMatches.filter(m => 
+                    m.teams.home.name.toLowerCase().includes(term) || 
+                    m.teams.away.name.toLowerCase().includes(term)
+                );
+                renderMatches(filtered, currentSelectedSportName);
+            };
+            
+            document.getElementById('nav-up').onclick = () => { if(currentMatchIndex > 0) handleMatchClick(currentMatchIndex - 1); };
+            document.getElementById('nav-down').onclick = () => { if(currentMatchIndex < allMatches.length - 1) handleMatchClick(currentMatchIndex + 1); };
+        };
+    </script>
+</body>
+</html>
