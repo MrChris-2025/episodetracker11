@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stream Hub TV | Cinematic Experience</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Outfit', 'sans-serif'] },
+                    colors: {
+                        'tv-bg': '#05070a',
+                        'tv-surface': '#11141d',
+                        'tv-accent': '#4f46e5',
+                        'tv-gold': '#fbbf24',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #05070a; color: #ffffff; overflow-x: hidden; }
+        
+        /* Cinematic Backdrop */
+        #dynamicBackdrop {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1;
+            transition: opacity 0.8s ease-in-out;
+            opacity: 0.4;
+            filter: blur(60px) brightness(0.3);
+            transform: scale(1.1);
+        }
+
+        .tv-glass { 
+            background: rgba(17, 20, 29, 0.7); 
+            backdrop-filter: blur(20px); 
+            border-bottom: 1px solid rgba(255,255,255,0.05); 
+        }
+
+        /* TV Focused Card Effect */
+        .media-card {
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            outline: 4px solid transparent;
+        }
+        .media-card:hover {
+            transform: scale(1.1);
+            z-index: 30;
+            outline-color: #4f46e5;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+        }
+
+        /* Custom Scrollbar for Leanback Experience */
+        ::-webkit-scrollbar { height: 6px; width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #4f46e5; }
+
+        .line-clamp-3 {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        /* Video Player Fullscreen Overlay */
+        #playerOverlay {
+            position: fixed;
+            inset: 0;
+            background: #000;
+            z-index: 100;
+            display: none;
+            flex-direction: column;
+        }
+
+        .sidebar-item.active {
+            background-color: #4f46e5;
+            color: white;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col font-sans antialiased pb-20">
+
+    <div id="dynamicBackdrop"></div>
+
+    <!-- Top Navigation Optimized for TV -->
+    <header class="sticky top-0 z-50 tv-glass">
+        <div class="container mx-auto px-10 h-28 flex items-center justify-between">
+            <div class="flex items-center gap-6">
+                <div class="p-3 bg-tv-accent rounded-2xl shadow-xl">
+                    <svg class="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z"></path></svg>
+                </div>
+                <h1 class="text-5xl font-extrabold tracking-tighter">STREAM<span class="text-tv-accent">HUB</span></h1>
+                
+                <nav class="flex gap-8 ml-12 items-center">
+                    <button id="btnMovies" class="text-2xl font-semibold opacity-100 hover:text-tv-accent transition-colors">Movies</button>
+                    <button id="btnTV" class="text-2xl font-semibold opacity-50 hover:text-tv-accent transition-colors">TV Shows</button>
+                </nav>
+            </div>
+
+            <div class="flex items-center gap-6 flex-1 max-w-xl mx-12">
+                <div class="relative w-full">
+                    <input type="text" id="searchInput" placeholder="Search for titles..." class="w-full bg-white/5 border-2 border-white/10 rounded-2xl py-4 px-8 text-xl focus:border-tv-accent outline-none transition-all placeholder:text-gray-500">
+                    <svg class="w-6 h-6 absolute right-6 top-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <div id="currentTime" class="text-3xl font-light opacity-60">12:00 PM</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 container mx-auto px-10 pt-10">
+        
+        <!-- Featured Hero Section -->
+        <section id="heroSection" class="relative h-[55vh] rounded-[3rem] overflow-hidden mb-16 shadow-2xl group cursor-pointer">
+            <div id="heroContent" class="absolute inset-0 z-20 flex flex-col justify-end p-16 bg-gradient-to-t from-tv-bg via-tv-bg/20 to-transparent">
+                <div id="heroMeta" class="flex items-center gap-4 mb-4">
+                    <span class="bg-tv-accent px-4 py-1 rounded-lg text-sm font-bold tracking-widest uppercase">Featured</span>
+                    <span id="heroRating" class="text-tv-gold font-bold text-xl">★ 8.5</span>
+                </div>
+                <h2 id="heroTitle" class="text-7xl font-black mb-6 leading-none">Loading Title...</h2>
+                <p id="heroDesc" class="text-2xl text-gray-300 max-w-3xl mb-8 line-clamp-3 font-medium leading-relaxed"></p>
+                <div class="flex gap-4">
+                    <button id="heroPlayBtn" class="bg-white text-black px-12 py-5 rounded-2xl text-2xl font-bold flex items-center gap-3 hover:scale-105 transition-transform">
+                        <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20"><path d="M4.5 3.5a.5.5 0 00-.5.5v12a.5.5 0 00.763.429l11-6a.5.5 0 000-.858l-11-6a.5.5 0 00-.263-.071z"></path></svg>
+                        Play Now
+                    </button>
+                </div>
+            </div>
+            <img id="heroImage" src="" class="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110">
+        </section>
+
+        <!-- Dynamic Content Rows -->
+        <div class="space-y-16">
+            <div>
+                <h3 id="rowTitle" class="text-4xl font-bold mb-8 flex items-center gap-4">
+                    Trending Now
+                    <div class="h-1 w-24 bg-tv-accent rounded-full"></div>
+                </h3>
+                <div id="contentGrid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-8">
+                    <!-- Cards will be injected here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="flex justify-center py-20">
+            <button id="loadMore" class="bg-tv-surface border-2 border-white/5 hover:border-tv-accent px-20 py-6 rounded-3xl text-2xl font-bold transition-all">
+                Discover More
+            </button>
+        </div>
+    </main>
+
+    <!-- Player Overlay -->
+    <div id="playerOverlay">
+        <div class="absolute top-10 left-10 z-[110] flex items-center gap-6">
+            <button id="closePlayer" class="bg-white/10 hover:bg-white/20 p-5 rounded-full backdrop-blur-xl border border-white/20">
+                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"></path></svg>
+            </button>
+            <h4 id="playingTitle" class="text-3xl font-bold">Watching...</h4>
+        </div>
+        <iframe id="mainPlayer" class="w-full h-full" allowfullscreen frameborder="0"></iframe>
+    </div>
+
+    <script>
+        const API_KEY = '1070730380f5fee0d87cf0382670b255';
+        const BASE_URL = 'https://api.themoviedb.org/3';
+        const IMG_URL = 'https://image.tmdb.org/t/p/original';
+        const POSTER_URL = 'https://image.tmdb.org/t/p/w500';
+        const PLAYER_BASE = '/movie4/no-main/watch.html';
+
+        let currentMode = 'movie';
+        let currentPage = 1;
+        let activeQuery = '';
+
+        // UI Elements
+        const grid = document.getElementById('contentGrid');
+        const heroTitle = document.getElementById('heroTitle');
+        const heroDesc = document.getElementById('heroDesc');
+        const heroImage = document.getElementById('heroImage');
+        const heroRating = document.getElementById('heroRating');
+        const backdrop = document.getElementById('dynamicBackdrop');
+        const playerOverlay = document.getElementById('playerOverlay');
+        const mainPlayer = document.getElementById('mainPlayer');
+        const playingTitle = document.getElementById('playingTitle');
+
+        // Clock Update
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('currentTime').textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        async function fetchTrending() {
+            const res = await fetch(`${BASE_URL}/trending/${currentMode}/week?api_key=${API_KEY}`);
+            const data = await res.json();
+            const featured = data.results[0];
+            updateHero(featured);
+            renderGrid(data.results.slice(1), false);
+        }
+
+        function updateHero(item) {
+            const title = item.title || item.name;
+            heroTitle.textContent = title;
+            heroDesc.textContent = item.overview;
+            heroImage.src = IMG_URL + item.backdrop_path;
+            heroRating.textContent = `★ ${item.vote_average.toFixed(1)}`;
+            backdrop.style.backgroundImage = `url(${IMG_URL + item.backdrop_path})`;
+            backdrop.style.backgroundSize = 'cover';
+            
+            document.getElementById('heroPlayBtn').onclick = () => playMedia(item.id, title);
+        }
+
+        async function fetchContent(append = false) {
+            let url = activeQuery 
+                ? `${BASE_URL}/search/${currentMode}?api_key=${API_KEY}&query=${activeQuery}&page=${currentPage}`
+                : `${BASE_URL}/discover/${currentMode}?api_key=${API_KEY}&sort_by=popularity.desc&page=${currentPage}`;
+            
+            const res = await fetch(url);
+            const data = await res.json();
+            renderGrid(data.results, append);
+        }
+
+        function renderGrid(items, append) {
+            if (!append) grid.innerHTML = '';
+            
+            items.forEach(item => {
+                if (!item.poster_path) return;
+                
+                const card = document.createElement('div');
+                card.className = 'media-card bg-tv-surface rounded-3xl overflow-hidden cursor-pointer';
+                const title = item.title || item.name;
+                
+                card.innerHTML = `
+                    <div class="relative aspect-[2/3]">
+                        <img src="${POSTER_URL}${item.poster_path}" class="w-full h-full object-cover">
+                        <div class="absolute bottom-4 right-4 bg-black/60 backdrop-blur-md px-3 py-1 rounded-xl border border-white/10 text-lg font-bold">
+                            ★ ${item.vote_average.toFixed(1)}
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <h4 class="text-xl font-bold truncate">${title}</h4>
+                        <p class="text-gray-500 text-lg">${(item.release_date || item.first_air_date || '').split('-')[0]}</p>
+                    </div>
+                `;
+                
+                card.onclick = () => playMedia(item.id, title);
+                // Hover effect for TV - change backdrop
+                card.onmouseenter = () => {
+                    backdrop.style.backgroundImage = `url(${IMG_URL + item.backdrop_path})`;
+                };
+                
+                grid.appendChild(card);
+            });
+        }
+
+        function playMedia(id, title) {
+            playingTitle.textContent = `Streaming: ${title}`;
+            mainPlayer.src = `${PLAYER_BASE}?id=${id}&type=${currentMode}`;
+            playerOverlay.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        document.getElementById('closePlayer').onclick = () => {
+            playerOverlay.style.display = 'none';
+            mainPlayer.src = '';
+            document.body.style.overflow = 'auto';
+        };
+
+        // Navigation Handlers
+        document.getElementById('btnMovies').onclick = (e) => {
+            currentMode = 'movie';
+            currentPage = 1;
+            e.target.style.opacity = '1';
+            document.getElementById('btnTV').style.opacity = '0.5';
+            document.getElementById('rowTitle').innerHTML = 'Trending Movies <div class="h-1 w-24 bg-tv-accent rounded-full"></div>';
+            fetchTrending();
+        };
+
+        document.getElementById('btnTV').onclick = (e) => {
+            currentMode = 'tv';
+            currentPage = 1;
+            e.target.style.opacity = '1';
+            document.getElementById('btnMovies').style.opacity = '0.5';
+            document.getElementById('rowTitle').innerHTML = 'Trending TV Shows <div class="h-1 w-24 bg-tv-accent rounded-full"></div>';
+            fetchTrending();
+        };
+
+        document.getElementById('searchInput').oninput = (e) => {
+            activeQuery = e.target.value;
+            currentPage = 1;
+            clearTimeout(window.searchTimer);
+            window.searchTimer = setTimeout(() => {
+                if(activeQuery.length > 2) {
+                    fetchContent(false);
+                } else if (activeQuery === '') {
+                    fetchTrending();
+                }
+            }, 600);
+        };
+
+        document.getElementById('loadMore').onclick = () => {
+            currentPage++;
+            fetchContent(true);
+        };
+
+        // Init
+        window.onload = () => {
+            fetchTrending();
+        };
+    </script>
+</body>
+</html>
+
