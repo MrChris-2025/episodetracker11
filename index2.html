@@ -13,164 +13,56 @@
     <link rel="stylesheet" href="sports.css">
     <style>
         :root {
-            --steelers-gold: #FFB81C;
-            --glass-bg: rgba(30, 41, 59, 0.7);
-            --glass-border: rgba(255, 255, 255, 0.1);
+            --steelers-gold: #FFB612;
+            --dark-bg: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
         }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background: radial-gradient(circle at top right, #1e293b, #0f172a, #020617);
-            background-attachment: fixed;
-            color: #f8fafc;
-        }
-
-        .glass-panel {
-            background: var(--glass-bg);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid var(--glass-border);
-            border-radius: 1rem;
-        }
-
-        .header-bg {
-            background: rgba(15, 23, 42, 0.8);
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid var(--glass-border);
-        }
-
-        /* Modernized Player Container */
-        .player-container {
-            position: relative;
-            padding-top: 56.25%;
-            background: #000;
-            border-radius: 1rem;
-            overflow: hidden;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        #mainPlayer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-        }
-
-        /* Improved Grid System */
-        .match-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-            gap: 1.25rem;
-        }
-
-        .match-card {
-            position: relative;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            background: #1e293b;
-            border-radius: 0.75rem;
-            overflow: hidden;
-            border: 1px solid transparent;
-        }
-
-        .match-card:hover {
-            transform: translateY(-4px);
-            border-color: var(--steelers-gold);
-            box-shadow: 0 0 20px rgba(255, 184, 28, 0.2);
-        }
-
-        .match-card-content {
-            padding: 1rem;
-            background: linear-gradient(to top, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.7));
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-
-        .match-card-bg-img {
-            position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            opacity: 0.4;
-            transition: opacity 0.3s ease;
-        }
-
-        .match-card:hover .match-card-bg-img {
-            opacity: 0.6;
-        }
-
-        .nav-link {
-            position: relative;
-            transition: color 0.3s ease;
-        }
-
-        .nav-link::after {
-            content: '';
-            position: absolute;
-            bottom: -4px;
-            left: 0;
-            width: 0;
-            height: 2px;
-            background: var(--steelers-gold);
-            transition: width 0.3s ease;
-        }
-
-        .nav-link:hover::after {
-            width: 100%;
-        }
-
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #475569; }
-
-        .live-indicator {
-            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: .3; }
-        }
+        body { font-family: 'Inter', sans-serif; background-color: var(--dark-bg); color: white; }
+        .glass { background: var(--card-bg); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
+        .match-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid rgba(255,255,255,0.05); overflow: hidden; position: relative; }
+        .match-card:hover { transform: translateY(-4px); border-color: var(--steelers-gold); box-shadow: 0 10px 20px -10px rgba(255, 182, 18, 0.3); }
+        .active-stream { border-color: var(--steelers-gold); background: rgba(255, 182, 18, 0.05); }
+        .player-container { aspect-ratio: 16/9; background: #000; border-radius: 1rem; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
+        .nav-link { position: relative; transition: color 0.3s; }
+        .nav-link::after { content: ''; position: absolute; width: 0; height: 2px; bottom: -4px; left: 0; background: var(--steelers-gold); transition: width 0.3s; }
+        .nav-link:hover::after { width: 100%; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
     </style>
 </head>
-<body x-data="sportsApp()" x-init="isGridView = true"> <nav class="sticky top-0 z-50 header-bg">
-        <div class="max-w-7xl mx-auto px-6 py-4">
+<body x-data="sportsApp()" class="antialiased text-slate-200">
+    
+    <nav class="sticky top-0 z-50 glass border-b border-white/5">
+        <div class="max-w-7xl mx-auto px-4 py-4">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-6">
                     <div class="relative">
-                        <img src="https://heather2025.nekoweb.org/images/beetle2.jpg" alt="Logo" class="h-12 w-12 rounded-xl shadow-2xl border border-white/10 rotate-3 hover:rotate-0 transition-transform">
-                        <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-[#0f172a] rounded-full"></div>
+                        <img src="https://heather2025.nekoweb.org/images/beetle2.jpg" alt="Logo" class="h-10 w-10 rounded-xl shadow-2xl rotate-3">
+                        <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 border-2 border-slate-900 rounded-full"></div>
                     </div>
-                    <div class="flex flex-col">
-                        <span class="text-2xl font-black tracking-tighter text-white uppercase italic">Live<span class="text-[#FFB81C]">Sports</span></span>
-                        <span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest -mt-1">Premium Stream Engine</span>
+                    <div class="flex items-center">
+                        <span class="text-2xl font-extrabold tracking-tighter text-white">LIVE<span class="text-[#FFB612]">SPORTS</span></span>
                     </div>
                 </div>
-
+                
                 <div class="hidden lg:flex items-center space-x-8 text-sm font-semibold uppercase tracking-wider">
-                    <a href="index.html" class="nav-link text-gray-400 hover:text-white">Movies & Shows</a>
-                    <a href="#" @click.prevent="toggleSteelersSchedule()" class="nav-link text-gray-400 hover:text-white flex items-center gap-2">
+                    <a href="index.html" class="nav-link text-slate-400 hover:text-white">Movies</a>
+                    <a href="#" @click.prevent="toggleSteelersSchedule()" class="nav-link text-slate-400 hover:text-white flex items-center gap-2">
                         <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/Pittsburgh_Steelers_logo.svg/20px-Pittsburgh_Steelers_logo.svg.png" class="h-4" alt="Steelers">
-                        Schedule
+                        <span>Steelers Schedule</span>
                     </a>
                 </div>
 
                 <div class="flex items-center gap-4">
                     <a href="protonvpn:" class="hidden sm:block">
-                        <button class="bg-[#FFB81C] hover:bg-yellow-500 text-black font-extrabold px-5 py-2 rounded-lg text-xs transition-all transform active:scale-95 shadow-[0_0_15px_rgba(255,184,28,0.3)]">
-                            SECURE VPN
+                        <button class="bg-[#FFB612] hover:bg-yellow-500 text-black px-5 py-2 rounded-full text-xs font-bold transition-all transform hover:scale-105 active:scale-95 shadow-lg shadow-yellow-500/20 uppercase">
+                            Secure VPN
                         </button>
                     </a>
-                    <button @click="mobileMenu = !mobileMenu" class="lg:hidden text-white p-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
-                        </svg>
+                    <button @click="mobileMenu = !mobileMenu" class="lg:hidden p-2 text-slate-400">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
                     </button>
                 </div>
             </div>
@@ -178,75 +70,84 @@
     </nav>
 
     <main class="max-w-7xl mx-auto px-4 py-8">
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div class="grid grid-cols-1 xl:grid-cols-12 gap-8">
             
-            <div class="lg:col-span-8 space-y-6">
-                <div class="glass-panel p-1 overflow-hidden">
-                    <div class="player-container">
-                        <iframe id="mainPlayer"
-                                :src="currentEmbeddedStreamUrl || ''"
-                                frameborder="0"
-                                allowfullscreen
-                                allow="autoplay; fullscreen"
-                                sandbox="allow-same-origin allow-scripts">
-                        </iframe>
-                        <div x-show="!isMatchSelected" class="absolute inset-0 flex items-center justify-center bg-[#0f172a]">
-                             <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/Pittsburgh_Steelers_logo.svg/600px-Pittsburgh_Steelers_logo.svg.png" alt="Steelers" class="w-32 h-32 opacity-20 animate-pulse">
+            <div class="xl:col-span-8 space-y-6">
+                
+                <div class="glass rounded-3xl p-6 flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                        <h1 class="text-xs font-bold text-[#FFB612] uppercase tracking-[0.2em] mb-1">Current Broadcast</h1>
+                        <div id="nflCountdown" class="text-xl font-bold text-white font-Poppins"></div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-[10px] text-slate-500 uppercase font-bold mb-1 tracking-widest">Backup Links</p>
+                        <div class="flex gap-3 text-xs">
+                            <a href="livesports2.html" class="text-slate-300 hover:text-[#FFB612] transition">Server 2</a>
+                            <span class="text-slate-700">|</span>
+                            <a href="livesports3.html" class="text-slate-300 hover:text-[#FFB612] transition">Server 3</a>
                         </div>
                     </div>
                 </div>
 
-                <div class="glass-panel p-6">
-                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div>
-                            <h1 class="text-xl font-bold text-white flex items-center gap-3">
-                                <span class="w-2 h-2 bg-red-500 rounded-full animate-ping" x-show="isMatchSelected"></span>
-                                <span x-text="selectedMatchTitle || 'Select a channel to begin'"></span>
-                            </h1>
-                            <p class="text-sm text-gray-400 mt-1" id="nflCountdown"></p>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <template x-if="selectedMatchBadges.home">
-                                <img :src="selectedMatchBadges.home" class="w-10 h-10 object-contain p-1 bg-white/5 rounded-lg border border-white/10">
-                            </template>
-                            <span class="text-gray-600 font-black">VS</span>
-                            <template x-if="selectedMatchBadges.away">
-                                <img :src="selectedMatchBadges.away" class="w-10 h-10 object-contain p-1 bg-white/5 rounded-lg border border-white/10">
-                            </template>
-                        </div>
+                <div class="player-container group relative">
+                    <iframe id="mainPlayer" class="w-full h-full"
+                            :src="currentEmbeddedStreamUrl || ''"
+                            frameborder="0" allowfullscreen
+                            allow="autoplay; fullscreen"
+                            sandbox="allow-same-origin allow-scripts">
+                    </iframe>
+                    
+                    <div x-show="!isMatchSelected" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90 backdrop-blur-sm transition-all">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/Pittsburgh_Steelers_logo.svg/600px-Pittsburgh_Steelers_logo.svg.png" 
+                             class="w-32 h-32 opacity-20 mb-6 animate-pulse" alt="Logo">
+                        <p class="text-slate-400 font-medium">Select a matchup to begin streaming</p>
                     </div>
                 </div>
 
-                <div x-show="allAvailableStreams.length > 0" class="glass-panel p-4 flex items-center justify-between">
-                    <button @click="previousStream()" class="p-3 bg-white/5 hover:bg-white/10 rounded-xl transition-all disabled:opacity-20">
-                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-                    </button>
-                    <div class="text-center">
-                        <span class="block text-xs uppercase tracking-widest text-gray-500 font-bold mb-1">Source Pipeline</span>
-                        <span class="text-[#FFB81C] font-bold" x-text="currentStream ? `${currentStream.language} Source #${currentStreamIndex + 1}` : ''"></span>
+                <div class="glass rounded-2xl p-4 flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        <template x-if="allAvailableStreams.length > 0">
+                            <div class="flex items-center gap-2">
+                                <button @click="previousStream()" class="p-2 hover:bg-white/10 rounded-xl transition">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke-width="2.5"/></svg>
+                                </button>
+                                <div class="text-center min-w-[120px]">
+                                    <span class="text-xs font-bold text-[#FFB612]" x-text="currentStream?.language"></span>
+                                    <p class="text-[10px] text-slate-500" x-text="currentStream?.source"></p>
+                                </div>
+                                <button @click="nextStream()" class="p-2 hover:bg-white/10 rounded-xl transition">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-width="2.5"/></svg>
+                                </button>
+                            </div>
+                        </template>
                     </div>
-                    <button @click="nextStream()" class="p-3 bg-white/5 hover:bg-white/10 rounded-xl transition-all disabled:opacity-20">
-                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                    </button>
+                    
+                    <div class="flex items-center gap-3">
+                        <button @click="toggleFullScreen()" class="p-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl transition text-slate-300">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <div class="lg:col-span-4 space-y-6">
-                <div class="glass-panel p-6">
-                    <div class="flex items-center justify-between mb-6">
-                        <h2 class="text-lg font-bold tracking-tight">Match Center</h2>
-                        <div class="flex gap-2">
-                             <button @click="isGridView = !isGridView" class="p-2 bg-white/5 hover:bg-white/10 rounded-lg transition-colors">
-                                <svg x-show="!isGridView" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"/></svg>
-                                <svg x-show="isGridView" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M4 6h4v4H4V6zm12 0h4v4h-4V6zM4 14h4v4H4v-4zm12 0h4v4h-4v-4z"/></svg>
-                             </button>
-                        </div>
+            <div class="xl:col-span-4 space-y-6">
+                
+                <div class="glass rounded-3xl p-5 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-lg font-bold">Live Events</h2>
+                        <button @click="toggleGridView()" class="text-[#FFB612] p-1">
+                            <template x-if="!isGridView">
+                                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M3 11h8V3H3v8zm2-6h4v4H5V5zm8-2v8h8V3h-8zm6 6h-4V5h4v4zM3 21h8v-8H3v8zm2-6h4v4H5v-4zm8 8h8v-8h-8v8zm6-6h-4v4h4v-4z"/></svg>
+                            </template>
+                            <template x-if="isGridView">
+                                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M3 4h18v2H3V4zm0 7h18v2H3v-2zm0 7h18v2H3v-2z"/></svg>
+                            </template>
+                        </button>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-3 mb-6">
+                    <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="text-[10px] font-bold text-gray-500 uppercase mb-1 block">Sport</label>
-                            <select x-model="selectedSport" @change="filterMatches()" class="w-full bg-[#0f172a] border border-white/10 rounded-lg px-3 py-2 text-sm focus:border-[#FFB81C] outline-none">
+                            <select x-model="selectedSport" @change="filterMatches()" class="w-full bg-slate-800/50 border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-[#FFB612] outline-none">
                                 <option value="">All Sports</option>
                                 <template x-for="sport in sports" :key="sport.id">
                                     <option :value="sport.id" x-text="sport.name"></option>
@@ -254,70 +155,33 @@
                             </select>
                         </div>
                         <div>
-                            <label class="text-[10px] font-bold text-gray-500 uppercase mb-1 block">Timeline</label>
-                            <select x-model="matchType" @change="loadMatches()" class="w-full bg-[#0f172a] border border-white/10 rounded-lg px-3 py-2 text-sm focus:border-[#FFB81C] outline-none">
+                            <select x-model="matchType" @change="loadMatches()" class="w-full bg-slate-800/50 border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-[#FFB612] outline-none">
                                 <option value="live">Live Now</option>
                                 <option value="today">Today</option>
                                 <option value="all">Upcoming</option>
                             </select>
                         </div>
                     </div>
-
-                    <div class="overflow-y-auto pr-2 custom-scrollbar" style="max-height: 600px;">
-                        <div :class="isGridView ? 'match-grid' : 'space-y-3'">
-                            <template x-for="match in filteredMatches" :key="match.id">
-                                <div class="match-card group cursor-pointer" @click="handleWatchStream(match)">
-                                    <template x-if="match.poster">
-                                        <img :src="'https://streamed.pk/api/images/poster/' + match.poster + '.webp'" class="match-card-bg-img">
-                                    </template>
-                                    
-                                    <div class="match-card-content relative z-10">
-                                        <div class="flex justify-between items-start">
-                                            <span class="text-[10px] font-black bg-black/50 backdrop-blur-md px-2 py-1 rounded text-[#FFB81C]" x-text="match.category"></span>
-                                            <template x-if="matchType === 'live'">
-                                                <div class="flex items-center gap-1 bg-red-600 px-2 py-0.5 rounded text-[8px] font-bold text-white">
-                                                    <span class="w-1 h-1 bg-white rounded-full live-indicator"></span> LIVE
-                                                </div>
-                                            </template>
-                                        </div>
-
-                                        <div class="mt-4 text-center">
-                                            <template x-if="match.teams">
-                                                <div class="flex flex-col items-center gap-1">
-                                                    <span class="text-xs font-bold leading-tight line-clamp-1" x-text="match.teams.home?.name"></span>
-                                                    <span class="text-[9px] text-gray-500 font-bold italic">VS</span>
-                                                    <span class="text-xs font-bold leading-tight line-clamp-1" x-text="match.teams.away?.name"></span>
-                                                </div>
-                                            </template>
-                                            <template x-if="!match.teams">
-                                                <span class="text-xs font-bold" x-text="match.title"></span>
-                                            </template>
-                                        </div>
-                                        
-                                        <div class="mt-3 flex justify-center">
-                                            <div class="h-1 w-0 group-hover:w-full bg-[#FFB81C] transition-all duration-300"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </template>
-                        </div>
-                        
-                        <div x-show="loadingMatches" class="flex flex-col items-center justify-center py-20 opacity-50">
-                            <div class="w-8 h-8 border-2 border-[#FFB81C] border-t-transparent rounded-full animate-spin mb-4"></div>
-                            <p class="text-xs font-bold tracking-widest uppercase">Fetching Streams</p>
-                        </div>
-                    </div>
                 </div>
-            </div>
-        </div>
-    </main>
 
-    <script>
-        // Custom Grid Default Logic
-        document.addEventListener('alpine:init', () => {
-            // We set isGridView to true by default in the body tag x-init
-        });
-    </script>
-    <script src="sports.js"></script>
-</body>
-</html>
+                <div class="custom-scrollbar overflow-y-auto pr-1" style="max-height: 650px;">
+                    <div :class="isGridView ? 'grid grid-cols-2 gap-3' : 'space-y-3'" x-init="isGridView = true">
+                        <template x-for="match in filteredMatches" :key="match.id">
+                            <div class="match-card glass rounded-2xl p-4 cursor-pointer relative" 
+                                 :class="selectedMatchId === match.id ? 'active-stream' : ''"
+                                 @click="handleWatchStream(match)">
+                                
+                                <div class="flex flex-col h-full justify-between">
+                                    <div class="flex items-center justify-between mb-3">
+                                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-tighter" x-text="match.category"></span>
+                                        <template x-if="matchType === 'live'">
+                                            <span class="flex items-center gap-1">
+                                                <span class="w-1.5 h-1.5 bg-[#FFB612] rounded-full animate-pulse"></span>
+                                                <span class="text-[9px] font-black text-[#FFB612]">LIVE</span>
+                                            </span>
+                                        </template>
+                                    </div>
+
+                                    <div class="space-y-3 py-2">
+                                        <div class="flex items-center gap-3">
+                                            <img
