@@ -1,153 +1,181 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StreamVault - Watch History & Navigation</title>
+    <title>StreamVault | Premium Entertainment</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://npmcdn.com/parse/dist/parse.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #0a0a0a; color: #f3f4f6; }
-        .bg-purple { background-color: #a855f7; }
-        .glass { background: rgba(23, 23, 23, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
-        
-        .watched-banner {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: rgba(168, 85, 247, 0.95);
-            padding: 6px 4px;
-            color: white;
-            font-size: 8.5px;
-            font-weight: 700;
-            text-align: center;
-            line-height: 1.2;
-            backdrop-filter: blur(8px);
-            border-top: 1px solid rgba(255, 255, 255, 0.2);
-            z-index: 10;
+        :root {
+            --accent: #8b5cf6;
+            --accent-hover: #7c3aed;
+            --bg-deep: #050505;
+            --bg-card: #111111;
         }
 
-        .history-card:hover img, .gallery-card:hover img { transform: scale(1.05); }
-        
+        body { 
+            font-family: 'Poppins', sans-serif; 
+            background-color: var(--bg-deep); 
+            color: #ffffff;
+            scroll-behavior: smooth;
+        }
+
+        .glass { 
+            background: rgba(10, 10, 10, 0.7); 
+            backdrop-filter: blur(20px); 
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05); 
+        }
+
+        .card-gradient {
+            background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 40%, transparent 100%);
+        }
+
+        .history-card, .gallery-card {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .history-card:hover, .gallery-card:hover {
+            transform: translateY(-8px);
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            transition: all 0.3s;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
+        }
+
+        .input-dark {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s;
+        }
+
+        .input-dark:focus {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
+        }
+
+        .watched-badge {
+            background: var(--accent);
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
         .delete-btn {
-            position: absolute;
-            top: -6px;
-            right: -6px;
-            width: 22px;
-            height: 22px;
-            background-color: #ef4444;
-            color: white;
-            border-radius: 9999px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-            z-index: 60;
-            cursor: pointer;
-            border: 2px solid #0a0a0a;
-            transition: all 0.2s ease;
+            opacity: 0;
+            transition: opacity 0.2s;
         }
-        .delete-btn:hover { transform: scale(1.15); background-color: #dc2626; }
 
-        /* Updated Watched Style */
-        .ep-watched { color: #22c55e !important; font-weight: bold; }
+        .history-card:hover .delete-btn {
+            opacity: 1;
+        }
 
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #0a0a0a; }
-        ::-webkit-scrollbar-thumb { background: #262626; border-radius: 10px; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-deep); }
+        ::-webkit-scrollbar-thumb { background: #222; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #333; }
 
-        .episode-nav-btn {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
-            border-radius: 12px;
-            background: #1a1a1a;
-            border: 1px solid rgba(255,255,255,0.1);
-            font-size: 13px;
-            font-weight: 600;
-            transition: all 0.2s;
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-        .episode-nav-btn:hover:not(:disabled) {
-            background: #262626;
-            border-color: #a855f7;
+
+        .animate-fade { animation: fadeIn 0.5s ease forwards; }
+
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1rem;
+            padding-right: 2.5rem !important;
         }
-        .episode-nav-btn:disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-        }
-        
-        /* Ensure select options styling is visible in various browsers */
-        option { background-color: #1a1a1a; color: white; }
     </style>
 </head>
-<body class="pb-20">
+<body class="selection:bg-violet-500 selection:text-white">
 
-    <header class="sticky top-0 z-50 glass py-4 px-6 border-b border-white/5">
-        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-            <div class="flex items-center gap-3 cursor-pointer" onclick="location.reload()">
-                <div class="w-10 h-10 bg-purple rounded-xl flex items-center justify-center">
-                    <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"></path></svg>
+    <header class="sticky top-0 z-[60] glass py-4 px-6">
+        <div class="max-w-[1600px] mx-auto flex items-center justify-between gap-6">
+            <div class="flex items-center gap-8">
+                <div class="flex items-center gap-2 cursor-pointer group" onclick="location.reload()">
+                    <div class="w-9 h-9 bg-gradient-to-br from-violet-500 to-fuchsia-600 rounded-lg flex items-center justify-center shadow-lg shadow-violet-500/20 group-hover:scale-110 transition-transform">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <h1 class="text-xl font-extrabold tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">STREAMVAULT</h1>
                 </div>
-                <h1 class="text-xl font-bold tracking-tight">StreamVault</h1>
+
+                <nav class="hidden md:flex bg-white/5 p-1 rounded-xl border border-white/10">
+                    <button id="showMoviesBtn" class="px-6 py-1.5 rounded-lg text-sm font-bold bg-violet-600 transition-all shadow-lg shadow-violet-600/20">Movies</button>
+                    <button id="showTvBtn" class="px-6 py-1.5 rounded-lg text-sm font-bold text-gray-400 hover:text-white transition-all">TV Shows</button>
+                </nav>
             </div>
 
-            <div class="relative w-full max-w-md">
-                <input type="text" id="searchInput" placeholder="Search movies or shows..." class="w-full bg-[#1a1a1a] border border-white/10 rounded-full py-2 px-10 focus:outline-none focus:border-purple-500 text-sm">
-                <svg class="w-4 h-4 absolute left-4 top-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-            </div>
-
-            <div class="flex bg-[#1a1a1a] p-1 rounded-lg border border-white/5">
-                <button id="showMoviesBtn" class="px-5 py-1.5 rounded-md text-sm font-semibold bg-purple transition-all">Movies</button>
-                <button id="showTvBtn" class="px-5 py-1.5 rounded-md text-sm font-semibold text-gray-400 hover:text-white transition-all">TV Shows</button>
+            <div class="relative flex-grow max-w-xl">
+                <input type="text" id="searchInput" placeholder="Search titles, actors, genres..." class="w-full input-dark rounded-xl py-2.5 px-12 text-sm focus:outline-none">
+                <svg class="w-5 h-5 absolute left-4 top-2.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
             </div>
         </div>
     </header>
 
-    <main class="max-w-7xl mx-auto px-6 mt-8">
-        <!-- Player -->
-        <section id="playerSection" class="hidden mb-12">
-            <div class="glass p-4 rounded-2xl shadow-2xl">
-                <div id="videoContainer" class="aspect-video bg-black rounded-xl overflow-hidden relative">
+    <main class="max-w-[1600px] mx-auto px-6 mt-8">
+        
+        <!-- Premium Player Interface -->
+        <section id="playerSection" class="hidden mb-16 animate-fade">
+            <div class="bg-[#0f0f0f] rounded-3xl overflow-hidden border border-white/5 shadow-2xl">
+                <div id="videoContainer" class="aspect-video bg-black relative group">
                     <iframe id="mainPlayer" src="" class="w-full h-full" allowfullscreen frameborder="0"></iframe>
                 </div>
                 
-                <div class="mt-6">
-                    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 border-b border-white/5 pb-6">
-                        <div>
-                            <h2 id="playerTitle" class="text-2xl font-bold text-white">Title</h2>
-                            <p id="playerSub" class="text-sm text-purple-400 font-semibold uppercase mt-1"></p>
-                        </div>
-                        <div class="flex flex-wrap gap-3 w-full lg:w-auto">
-                            <select id="srcSelect" class="bg-[#1a1a1a] text-sm border border-white/10 rounded-lg px-4 py-2.5 outline-none hover:border-purple-500"></select>
-                            <div id="tvSelectors" class="hidden flex gap-2">
-                                <select id="seasonSelect" class="bg-[#1a1a1a] text-sm border border-white/10 rounded-lg px-4 py-2.5 outline-none hover:border-purple-500"></select>
-                                <select id="episodeSelect" class="bg-[#1a1a1a] text-sm border border-white/10 rounded-lg px-4 py-2.5 outline-none hover:border-purple-500"></select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="episodeInfo" class="hidden mt-6 flex flex-col md:flex-row gap-6">
-                        <div id="episodePosterContainer" class="w-full md:w-64 h-36 flex-shrink-0 rounded-xl overflow-hidden bg-[#1a1a1a] border border-white/10">
-                            <img id="episodeStill" src="" class="w-full h-full object-cover opacity-80" alt="Episode Still">
-                        </div>
+                <div class="p-8">
+                    <div class="flex flex-col lg:flex-row justify-between items-start gap-8">
                         <div class="flex-grow">
-                            <div class="flex items-center justify-between mb-3">
-                                <h3 id="epTitleDisplay" class="text-lg font-bold text-white">Episode Name</h3>
-                                <div class="flex gap-2">
-                                    <button id="prevEpBtn" class="episode-nav-btn">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-                                        Prev
-                                    </button>
-                                    <button id="nextEpBtn" class="episode-nav-btn">
-                                        Next
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                                    </button>
+                            <div class="flex items-center gap-3 mb-2">
+                                <span id="playerSub" class="px-2 py-1 bg-violet-500/10 text-violet-400 text-[10px] font-bold uppercase rounded-md tracking-widest border border-violet-500/20"></span>
+                                <span id="rating" class="text-xs text-yellow-500 font-bold">★ 8.4</span>
+                            </div>
+                            <h2 id="playerTitle" class="text-4xl font-extrabold text-white tracking-tight mb-4">Title</h2>
+                            <div id="episodeInfo" class="hidden flex flex-col md:flex-row gap-8 mt-8 p-6 bg-white/5 rounded-2xl border border-white/10">
+                                <div class="w-full md:w-72 aspect-video flex-shrink-0 rounded-xl overflow-hidden shadow-xl">
+                                    <img id="episodeStill" src="" class="w-full h-full object-cover" alt="Episode Still">
+                                </div>
+                                <div class="flex flex-col justify-between py-1">
+                                    <div>
+                                        <h3 id="epTitleDisplay" class="text-xl font-bold text-white mb-3">Episode Name</h3>
+                                        <p id="epOverview" class="text-gray-400 text-sm leading-relaxed max-w-2xl">No description available.</p>
+                                    </div>
+                                    <div class="flex gap-4 mt-6">
+                                        <button id="prevEpBtn" class="flex items-center gap-2 px-6 py-2 bg-white/5 hover:bg-white/10 text-white text-sm font-bold rounded-xl border border-white/10 transition disabled:opacity-30">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
+                                            Previous
+                                        </button>
+                                        <button id="nextEpBtn" class="flex items-center gap-2 px-6 py-2 bg-violet-600 hover:bg-violet-500 text-white text-sm font-bold rounded-xl transition disabled:opacity-30">
+                                            Next Episode
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                            <p id="epOverview" class="text-sm text-gray-400 leading-relaxed line-clamp-3">No description available for this episode.</p>
+                        </div>
+
+                        <div class="w-full lg:w-80 space-y-4">
+                            <label class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Stream Quality & Source</label>
+                            <select id="srcSelect" class="w-full bg-[#1a1a1a] text-sm border border-white/10 rounded-xl px-5 py-3.5 outline-none focus:border-violet-500 cursor-pointer"></select>
+                            
+                            <div id="tvSelectors" class="hidden space-y-4 pt-4 border-t border-white/5">
+                                <label class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Navigation</label>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <select id="seasonSelect" class="bg-[#1a1a1a] text-sm border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-violet-500"></select>
+                                    <select id="episodeSelect" class="bg-[#1a1a1a] text-sm border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-violet-500"></select>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -155,25 +183,36 @@
         </section>
 
         <!-- History -->
-        <section id="historySection" class="hidden mb-12">
-            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-[0.2em] mb-5">Recent Activity</h3>
-            <div id="historyGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"></div>
+        <section id="historySection" class="hidden mb-16 animate-fade">
+            <div class="flex items-center justify-between mb-8">
+                <h3 class="text-lg font-bold text-white flex items-center gap-3">
+                    <span class="w-1.5 h-6 bg-violet-500 rounded-full"></span>
+                    Continue Watching
+                </h3>
+            </div>
+            <div id="historyGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-6"></div>
         </section>
 
         <!-- Gallery -->
-        <section>
-            <h3 id="galleryTitle" class="text-xl font-bold mb-8 text-white">Popular Movies</h3>
-            <div id="galleryGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6"></div>
-            <div class="flex justify-center items-center gap-10 mt-16 mb-10">
-                <button id="prevBtn" class="w-12 h-12 bg-[#1a1a1a] rounded-full flex items-center justify-center text-gray-400 hover:bg-purple hover:text-white disabled:opacity-20 transition">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-                </button>
-                <span id="pageTxt" class="text-sm font-bold text-gray-500 uppercase tracking-widest">Page 1</span>
-                <button id="nextBtn" class="w-12 h-12 bg-[#1a1a1a] rounded-full flex items-center justify-center text-gray-400 hover:bg-purple hover:text-white transition">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                </button>
+        <section class="animate-fade">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+                <h3 id="galleryTitle" class="text-2xl font-black text-white tracking-tight">Popular Movies</h3>
+                <div class="flex items-center bg-white/5 p-1 rounded-xl border border-white/10">
+                    <button id="prevBtn" class="p-2.5 text-gray-400 hover:text-white disabled:opacity-20 transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
+                    </button>
+                    <span id="pageTxt" class="px-6 text-xs font-black text-gray-400 uppercase tracking-widest border-x border-white/10">Page 1</span>
+                    <button id="nextBtn" class="p-2.5 text-gray-400 hover:text-white transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
+                    </button>
+                </div>
             </div>
+            <div id="galleryGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-x-6 gap-y-10"></div>
         </section>
+
+        <footer class="mt-24 pb-12 border-t border-white/5 pt-12 text-center">
+            <p class="text-gray-600 text-xs font-medium uppercase tracking-[0.3em]">StreamVault Entertainment</p>
+        </footer>
     </main>
 
     <script>
@@ -184,21 +223,16 @@
         };
 
         const availableSources = [
-            { id: 'videasy', name: 'VidEasy', urls: { movie: 'https://player.videasy.net/movie/{id}?color=8834ec', tv: 'https://player.videasy.net/tv/{id}/{season}/{episode}?nextEpisode=true&color=8834ec' } },
-            { id: 'vidsrcsu', name: 'vidsrc.su', urls: { movie: 'https://vidsrc.su/embed/movie/{id}', tv: 'https://vidsrc.su/embed/tv/{id}/{season}/{episode}' } },
-            { id: 'vidsrcvip', name: 'vidsrc.vip', urls: { movie: 'https://vidsrc.vip/embed/movie/{id}', tv: 'https://vidsrc.vip/embed/tv/{id}/{season}/{episode}' } },
-            { id: 'vidsrccc', name: "VidSrcCC", urls: { movie: "https://vidsrc.cc/v2/embed/movie/{id}?autoPlay=false", tv: "https://vidsrc.cc/v2/embed/tv/{id}/{season}/{episode}?nextEpisode=true&autoPlay=false" } },
-            { id: 'flicky', name: 'Flicky', urls: { movie: 'https://flicky.host/embed/movie/?id={id}', tv: 'https://flicky.host/embed/tv/?id={id}&season={season}&episode={episode}' } },
-            { id: 'wplayme', name: 'Wplay.me', urls: { movie: 'https://embed.wplay.me/embed/movie/{id}', tv: 'https://embed.wplay.me/embed/tv/{id}/{season}/{episode}' } },
-            { id: 'rive', name: 'RiveStream', urls: { movie: 'https://rivestream.org/embed?type=movie&id={id}', tv: 'https://rivestream.org/embed?type=tv&id={id}&season={season}&episode={episode}' } },
-            { id: 'vidpop', name: 'Vidpop', urls: { movie: 'https://www.vidpop.xyz/embed/?id={id}', tv: 'https://www.vidpop.xyz/embed/?id={id}&season={season}&episode={episode}' } },
-            { id: 'vidjoy', name: 'VidJoy', urls: { movie: 'https://vidjoy.pro/embed/movie/{id}', tv: 'https://vidjoy.pro/embed/tv/{id}/{season}/{episode}' } },
-            { id: 'pstream', name: 'P-Stream', urls: { movie: 'https://iframe.pstream.org/embed/tmdb-movie-{id}', tv: 'https://iframe.pstream.org/embed/tmdb-tv-{id}/{season}/{episode}' } }
+            { id: 'videasy', name: 'Premium (VidEasy)', urls: { movie: 'https://player.videasy.net/movie/{id}?color=8834ec', tv: 'https://player.videasy.net/tv/{id}/{season}/{episode}?nextEpisode=true&color=8834ec' } },
+            { id: 'vidsrcsu', name: 'Mirror 1 (vidsrc.su)', urls: { movie: 'https://vidsrc.su/embed/movie/{id}', tv: 'https://vidsrc.su/embed/tv/{id}/{season}/{episode}' } },
+            { id: 'vidsrcvip', name: 'Mirror 2 (vidsrc.vip)', urls: { movie: 'https://vidsrc.vip/embed/movie/{id}', tv: 'https://vidsrc.vip/embed/tv/{id}/{season}/{episode}' } },
+            { id: 'vidsrccc', name: "Standard (VidSrcCC)", urls: { movie: "https://vidsrc.cc/v2/embed/movie/{id}?autoPlay=false", tv: "https://vidsrc.cc/v2/embed/tv/{id}/{season}/{episode}?nextEpisode=true&autoPlay=false" } },
+            { id: 'flicky', name: 'Ultra (Flicky)', urls: { movie: 'https://flicky.host/embed/movie/?id={id}', tv: 'https://flicky.host/embed/tv/?id={id}&season={season}&episode={episode}' } },
+            { id: 'wplayme', name: 'Direct (Wplay)', urls: { movie: 'https://embed.wplay.me/embed/movie/{id}', tv: 'https://embed.wplay.me/embed/tv/{id}/{season}/{episode}' } }
         ];
 
         const noSandboxSources = ['videasy', 'vidsrcsu', 'vidsrcvip'];
-
-        let state = { user: null, type: 'movie', page: 1, query: '', history: {}, current: null, currentEpisodes: [] };
+        let state = { user: null, type: 'movie', page: 1, query: '', history: {}, current: null, currentEpisodes: [], galleryData: [] };
 
         async function init() {
             Parse.initialize(CONFIG.PARSE_APP_ID, CONFIG.PARSE_JS_KEY);
@@ -211,16 +245,9 @@
             renderSources(); fetchGallery(); setupEvents();
         }
 
-        function formatDate(date) {
-            if (!date) return "--/--/----";
-            const d = new Date(date);
-            return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
-        }
-
         async function fetchHistory() {
             const query = new Parse.Query("WatchedItem");
-            query.equalTo("user", state.user);
-            query.descending("watchedDate");
+            query.equalTo("user", state.user).descending("watchedDate");
             try {
                 const results = await query.find();
                 state.history = {};
@@ -228,75 +255,15 @@
                     const tmdbId = item.get("tmdbId");
                     const s = item.get("lastWatchedSeason");
                     const e = item.get("lastWatchedEpisode");
-                    
                     if(!state.history[tmdbId]) state.history[tmdbId] = {};
-                    
                     state.history[tmdbId][`${s}-${e}`] = {
-                        id: item.id,
-                        obj: item,
-                        type: item.get("mediaType"),
-                        season: s,
-                        episode: e,
-                        title: item.get("title"),
-                        poster: item.get("posterPath"),
-                        watchedDate: item.get("watchedDate") || item.updatedAt
+                        id: item.id, obj: item, type: item.get("mediaType"), season: s, episode: e,
+                        title: item.get("title"), poster: item.get("posterPath"), watchedDate: item.get("watchedDate") || item.updatedAt
                     };
                 });
-                renderHistory(); renderGallery();
-            } catch (e) { console.error(e); }
-        }
-
-        async function saveToWatched(item, s = 0, e = 0) {
-            const WatchedItem = Parse.Object.extend("WatchedItem");
-            const tmdbId = item.id.toString();
-            const key = `${s}-${e}`;
-            
-            let record;
-            if (state.history[tmdbId] && state.history[tmdbId][key]) {
-                record = state.history[tmdbId][key].obj;
-            }
-            
-            if (!record) record = new WatchedItem();
-
-            record.set("user", state.user); 
-            record.set("tmdbId", tmdbId);
-            record.set("mediaType", state.type); 
-            record.set("lastWatchedSeason", parseInt(s));
-            record.set("lastWatchedEpisode", parseInt(e)); 
-            record.set("title", item.title || item.name);
-            record.set("posterPath", item.poster_path); 
-            record.set("watchedDate", new Date());
-            
-            try {
-                const saved = await record.save();
-                if(!state.history[tmdbId]) state.history[tmdbId] = {};
-                
-                state.history[tmdbId][key] = {
-                    id: saved.id,
-                    obj: saved, type: state.type, season: s, episode: e,
-                    title: item.title || item.name, poster: item.poster_path, watchedDate: new Date()
-                };
-                renderHistory(); renderGallery();
-            } catch (err) { console.error(err); }
-        }
-
-        async function deleteHistoryItem(tmdbId, event) {
-            event.stopPropagation();
-            try {
-                const query = new Parse.Query("WatchedItem");
-                query.equalTo("user", state.user);
-                query.equalTo("tmdbId", tmdbId);
-                const results = await query.find();
-                await Parse.Object.destroyAll(results);
-                delete state.history[tmdbId];
                 renderHistory(); 
-                renderGallery();
-                if (state.current && state.current.id.toString() === tmdbId) {
-                    const s = document.getElementById('seasonSelect').value;
-                    const e = document.getElementById('episodeSelect').value;
-                    updateEpisodeDropdown(s, e);
-                }
-            } catch (err) { console.error(err); }
+                if(state.galleryData.length) renderGallery();
+            } catch (e) { console.error(e); }
         }
 
         function renderHistory() {
@@ -308,55 +275,66 @@
                 const latest = episodes.sort((a,b) => b.watchedDate - a.watchedDate)[0];
                 uniqueShowsLatest.push({ tmdbId, ...latest });
             }
-            const sortedRecent = uniqueShowsLatest.sort((a,b) => b.watchedDate - a.watchedDate).slice(0, 8);
+            const sortedRecent = uniqueShowsLatest.sort((a,b) => b.watchedDate - a.watchedDate).slice(0, 4);
             if (sortedRecent.length === 0) { section.classList.add('hidden'); return; }
             section.classList.remove('hidden');
-            grid.innerHTML = sortedRecent.map((data) => {
-                return `
-                <div class="history-card relative flex items-center gap-4 p-3 bg-[#131313] rounded-2xl cursor-pointer hover:bg-white/5 transition-all border border-white/5 shadow-lg" 
+            grid.innerHTML = sortedRecent.map((data) => `
+                <div class="history-card relative group p-4 bg-white/5 rounded-2xl cursor-pointer hover:bg-white/10 border border-white/10" 
                      onclick="loadContent(${data.tmdbId}, '${data.type}', ${data.season}, ${data.episode})">
-                    <div onclick="deleteHistoryItem('${data.tmdbId}', event)" class="delete-btn">
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg>
-                    </div>
-                    <div class="w-14 h-20 flex-shrink-0 overflow-hidden rounded-xl">
-                        <img src="https://image.tmdb.org/t/p/w200${data.poster}" class="w-full h-full object-cover">
-                    </div>
-                    <div class="overflow-hidden">
-                        <h4 class="text-sm font-bold truncate text-white mb-1">${data.title}</h4>
-                        <div class="flex flex-col gap-0.5">
-                             <span class="text-[10px] text-purple-400 font-extrabold uppercase tracking-wider">${data.type === 'tv' ? `S${data.season} E${data.episode}` : 'Movie'}</span>
-                             <span class="text-[9px] text-gray-500 font-semibold">Watched: ${formatDate(data.watchedDate)}</span>
+                    <button onclick="deleteHistoryItem('${data.tmdbId}', event)" class="delete-btn absolute -top-2 -right-2 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center z-10 shadow-lg border-2 border-black hover:scale-110">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                    <div class="flex items-center gap-4">
+                        <div class="w-20 h-28 flex-shrink-0 overflow-hidden rounded-xl shadow-2xl">
+                            <img src="https://image.tmdb.org/t/p/w200${data.poster}" class="w-full h-full object-cover">
+                        </div>
+                        <div class="flex-grow min-w-0">
+                            <h4 class="text-sm font-bold text-white truncate mb-1">${data.title}</h4>
+                            <p class="text-[10px] font-black text-violet-400 uppercase tracking-widest mb-2">${data.type === 'tv' ? `S${data.season} E${data.episode}` : 'Movie'}</p>
+                            <div class="h-1 w-full bg-white/10 rounded-full overflow-hidden">
+                                <div class="h-full bg-violet-500 w-[70%]"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            `}).join('');
+            `).join('');
         }
 
         async function fetchGallery() {
             const url = state.query 
                 ? `https://api.themoviedb.org/3/search/${state.type}?api_key=${CONFIG.TMDB_KEY}&query=${encodeURIComponent(state.query)}&page=${state.page}`
                 : `https://api.themoviedb.org/3/${state.type}/popular?api_key=${CONFIG.TMDB_KEY}&page=${state.page}`;
-            const res = await fetch(url); const data = await res.json();
-            galleryData = data.results; renderGallery();
+            const res = await fetch(url);
+            const data = await res.json();
+            state.galleryData = data.results;
+            renderGallery();
             document.getElementById('pageTxt').innerText = `Page ${data.page}`;
             document.getElementById('prevBtn').disabled = data.page <= 1;
         }
 
         function renderGallery() {
             const grid = document.getElementById('galleryGrid');
-            grid.innerHTML = galleryData.map(item => {
+            grid.innerHTML = state.galleryData.map(item => {
                 const historyObj = state.history[item.id.toString()] || {};
-                const episodes = Object.values(historyObj);
-                const watchData = episodes.sort((a,b) => b.watchedDate - a.watchedDate)[0];
-                let bannerHtml = watchData ? `<div class="watched-banner">${watchData.type === 'tv' ? `S${watchData.season} E${watchData.episode}` : 'Movie'} Last Watched: ${formatDate(watchData.watchedDate)}</div>` : '';
+                const watchData = Object.values(historyObj).sort((a,b) => b.watchedDate - a.watchedDate)[0];
                 return `
-                <div class="gallery-card relative group cursor-pointer" onclick="loadContent(${item.id}, '${state.type}', ${watchData?.season || 1}, ${watchData?.episode || 1})">
-                    <div class="aspect-[2/3] rounded-2xl overflow-hidden bg-[#1a1a1a] mb-3 shadow-xl border border-white/5 relative">
-                        <img src="https://image.tmdb.org/t/p/w400${item.poster_path}" class="w-full h-full object-cover group-hover:scale-110 transition duration-700">
-                        ${bannerHtml}
+                <div class="gallery-card group cursor-pointer" onclick="loadContent(${item.id}, '${state.type}', ${watchData?.season || 1}, ${watchData?.episode || 1})">
+                    <div class="aspect-[2/3] rounded-2xl overflow-hidden bg-[#1a1a1a] mb-4 shadow-xl border border-white/5 relative">
+                        <img src="https://image.tmdb.org/t/p/w500${item.poster_path}" class="w-full h-full object-cover group-hover:scale-110 transition duration-700">
+                        <div class="absolute inset-0 card-gradient opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
+                            <span class="inline-block px-3 py-1 bg-violet-600 text-white text-[10px] font-black rounded-lg uppercase self-start mb-2">Watch Now</span>
+                        </div>
+                        ${watchData ? `
+                        <div class="absolute top-3 left-3 watched-badge px-2 py-1 rounded text-white font-bold shadow-lg">
+                            ${watchData.type === 'tv' ? `S${watchData.season}:E${watchData.episode}` : 'Watched'}
+                        </div>` : ''}
                     </div>
-                    <h4 class="text-sm font-bold truncate px-1 text-gray-200">${item.title || item.name}</h4>
-                    <p class="text-xs text-gray-500 px-1 mt-0.5">${(item.release_date || item.first_air_date || '').split('-')[0] || 'N/A'}</p>
+                    <h4 class="text-sm font-bold truncate text-gray-200">${item.title || item.name}</h4>
+                    <div class="flex items-center gap-2 mt-1">
+                        <span class="text-xs text-gray-500">${(item.release_date || item.first_air_date || '').split('-')[0] || 'N/A'}</span>
+                        <span class="w-1 h-1 bg-gray-700 rounded-full"></span>
+                        <span class="text-xs text-yellow-500 font-bold">★ ${item.vote_average?.toFixed(1) || '0.0'}</span>
+                    </div>
                 </div>
                 `;
             }).join('');
@@ -380,7 +358,7 @@
             } else {
                 document.getElementById('tvSelectors').classList.add('hidden');
                 document.getElementById('episodeInfo').classList.add('hidden');
-                document.getElementById('playerSub').innerText = "Movie Stream";
+                document.getElementById('playerSub').innerText = "Feature Film";
                 updatePlayer(); 
                 saveToWatched(state.current);
             }
@@ -398,30 +376,26 @@
 
         function updateEpisodeDropdown(sNum, currentENum) {
             const eSelect = document.getElementById('episodeSelect');
-            const historyForThisShow = state.history[state.current.id.toString()] || {};
+            const history = state.history[state.current.id.toString()] || {};
             eSelect.innerHTML = state.currentEpisodes.map(ep => {
                 const key = `${sNum}-${ep.episode_number}`;
-                const isWatched = !!historyForThisShow[key];
-                return `<option value="${ep.episode_number}" class="${isWatched ? 'ep-watched' : ''}">
-                    ${isWatched ? '✓ ' : ''}Episode ${ep.episode_number}
-                </option>`;
+                const watched = !!history[key];
+                return `<option value="${ep.episode_number}">${watched ? '✓ ' : ''}Episode ${ep.episode_number}</option>`;
             }).join('');
             if (currentENum) eSelect.value = currentENum;
         }
 
         function updateEpisodeDetails(eNum) {
-            const episode = state.currentEpisodes.find(ep => ep.episode_number == eNum);
-            if (!episode) return;
-            document.getElementById('playerSub').innerText = `Season ${episode.season_number} • Episode ${eNum}`;
-            document.getElementById('epTitleDisplay').innerText = episode.name;
-            document.getElementById('epOverview').innerText = episode.overview || "No description available for this episode.";
-            const stillUrl = episode.still_path ? `https://image.tmdb.org/t/p/w500${episode.still_path}` : `https://image.tmdb.org/t/p/w500${state.current.backdrop_path}`;
-            document.getElementById('episodeStill').src = stillUrl;
-            const sNum = document.getElementById('seasonSelect').value;
-            const maxEpisodes = state.currentEpisodes.length;
-            const maxSeasons = state.current.seasons.filter(x => x.season_number > 0).length;
-            document.getElementById('prevEpBtn').disabled = (eNum <= 1 && sNum <= 1);
-            document.getElementById('nextEpBtn').disabled = (eNum >= maxEpisodes && sNum >= maxSeasons);
+            const ep = state.currentEpisodes.find(x => x.episode_number == eNum);
+            if (!ep) return;
+            document.getElementById('playerSub').innerText = `S${ep.season_number} • E${eNum}`;
+            document.getElementById('epTitleDisplay').innerText = ep.name;
+            document.getElementById('epOverview').innerText = ep.overview || "No plot summary available for this episode.";
+            document.getElementById('episodeStill').src = ep.still_path ? `https://image.tmdb.org/t/p/w500${ep.still_path}` : `https://image.tmdb.org/t/p/w500${state.current.backdrop_path}`;
+            const s = document.getElementById('seasonSelect').value;
+            const maxS = state.current.seasons.filter(x => x.season_number > 0).length;
+            document.getElementById('prevEpBtn').disabled = (eNum <= 1 && s <= 1);
+            document.getElementById('nextEpBtn').disabled = (eNum >= state.currentEpisodes.length && s >= maxS);
         }
 
         function updatePlayer() {
@@ -431,24 +405,47 @@
             const s = document.getElementById('seasonSelect').value || 1; 
             const e = document.getElementById('episodeSelect').value || 1;
             if (noSandboxSources.includes(src.id)) { player.removeAttribute('sandbox'); } else { player.setAttribute('sandbox', 'allow-forms allow-pointer-lock allow-same-origin allow-scripts allow-top-navigation'); }
-            const url = state.type === 'movie' ? src.urls.movie.replace('{id}', state.current.id) : src.urls.tv.replace('{id}', state.current.id).replace('{season}', s).replace('{episode}', e);
-            player.src = url;
+            player.src = state.type === 'movie' ? src.urls.movie.replace('{id}', state.current.id) : src.urls.tv.replace('{id}', state.current.id).replace('{season}', s).replace('{episode}', e);
+        }
+
+        async function saveToWatched(item, s = 0, e = 0) {
+            const WatchedItem = Parse.Object.extend("WatchedItem");
+            const tmdbId = item.id.toString();
+            const key = `${s}-${e}`;
+            let record = (state.history[tmdbId] && state.history[tmdbId][key]) ? state.history[tmdbId][key].obj : new WatchedItem();
+            record.set({ user: state.user, tmdbId, mediaType: state.type, lastWatchedSeason: parseInt(s), lastWatchedEpisode: parseInt(e), title: item.title || item.name, posterPath: item.poster_path, watchedDate: new Date() });
+            try {
+                const saved = await record.save();
+                if(!state.history[tmdbId]) state.history[tmdbId] = {};
+                state.history[tmdbId][key] = { id: saved.id, obj: saved, type: state.type, season: s, episode: e, title: item.title || item.name, poster: item.poster_path, watchedDate: new Date() };
+                renderHistory(); renderGallery();
+            } catch (err) { console.error(err); }
+        }
+
+        async function deleteHistoryItem(tmdbId, event) {
+            event.stopPropagation();
+            try {
+                const query = new Parse.Query("WatchedItem");
+                query.equalTo("user", state.user).equalTo("tmdbId", tmdbId);
+                const results = await query.find();
+                await Parse.Object.destroyAll(results);
+                delete state.history[tmdbId];
+                renderHistory(); renderGallery();
+            } catch (err) { console.error(err); }
         }
 
         async function navigateEpisode(dir) {
             let s = parseInt(document.getElementById('seasonSelect').value);
             let e = parseInt(document.getElementById('episodeSelect').value);
-            const maxE = state.currentEpisodes.length;
             if (dir === 'next') {
-                if (e < maxE) { e++; } else {
-                    const seasons = state.current.seasons.filter(x => x.season_number > 0);
-                    if (s < seasons.length) { s++; e = 1; document.getElementById('seasonSelect').value = s; await updateEpisodes(s, e); return; }
-                }
+                if (e < state.currentEpisodes.length) e++;
+                else if (s < state.current.seasons.filter(x => x.season_number > 0).length) { s++; e = 1; document.getElementById('seasonSelect').value = s; await updateEpisodes(s, e); return; }
             } else {
-                if (e > 1) { e--; } else if (s > 1) {
+                if (e > 1) e--;
+                else if (s > 1) {
                     s--; document.getElementById('seasonSelect').value = s;
                     const res = await fetch(`https://api.themoviedb.org/3/tv/${state.current.id}/season/${s}?api_key=${CONFIG.TMDB_KEY}`);
-                    const data = await res.json(); e = data.episodes.length; await updateEpisodes(s, e); return;
+                    const d = await res.json(); e = d.episodes.length; await updateEpisodes(s, e); return;
                 }
             }
             document.getElementById('episodeSelect').value = e;
@@ -458,21 +455,18 @@
         function renderSources() { document.getElementById('srcSelect').innerHTML = availableSources.map(x => `<option value="${x.id}">${x.name}</option>`).join(''); }
 
         function setupEvents() {
-            document.getElementById('showMoviesBtn').onclick = () => { state.type = 'movie'; state.page = 1; document.getElementById('showMoviesBtn').classList.add('bg-purple'); document.getElementById('showTvBtn').classList.remove('bg-purple'); fetchGallery(); };
-            document.getElementById('showTvBtn').onclick = () => { state.type = 'tv'; state.page = 1; document.getElementById('showTvBtn').classList.add('bg-purple'); document.getElementById('showMoviesBtn').classList.remove('bg-purple'); fetchGallery(); };
+            document.getElementById('showMoviesBtn').onclick = () => { state.type = 'movie'; state.page = 1; document.getElementById('showMoviesBtn').classList.add('bg-violet-600', 'shadow-violet-600/20'); document.getElementById('showMoviesBtn').classList.remove('text-gray-400'); document.getElementById('showTvBtn').classList.remove('bg-violet-600', 'shadow-violet-600/20'); document.getElementById('showTvBtn').classList.add('text-gray-400'); fetchGallery(); };
+            document.getElementById('showTvBtn').onclick = () => { state.type = 'tv'; state.page = 1; document.getElementById('showTvBtn').classList.add('bg-violet-600', 'shadow-violet-600/20'); document.getElementById('showTvBtn').classList.remove('text-gray-400'); document.getElementById('showMoviesBtn').classList.remove('bg-violet-600', 'shadow-violet-600/20'); document.getElementById('showMoviesBtn').classList.add('text-gray-400'); fetchGallery(); };
             document.getElementById('searchInput').oninput = (e) => { state.query = e.target.value; state.page = 1; fetchGallery(); };
             document.getElementById('prevBtn').onclick = () => { if (state.page > 1) { state.page--; fetchGallery(); } };
             document.getElementById('nextBtn').onclick = () => { state.page++; fetchGallery(); };
             document.getElementById('srcSelect').onchange = updatePlayer;
             document.getElementById('seasonSelect').onchange = (e) => updateEpisodes(e.target.value);
-            document.getElementById('episodeSelect').onchange = (e) => {
-                const s = document.getElementById('seasonSelect').value;
-                const eVal = e.target.value;
-                updateEpisodeDetails(eVal); updateEpisodeDropdown(s, eVal); updatePlayer(); saveToWatched(state.current, s, eVal);
-            };
+            document.getElementById('episodeSelect').onchange = (e) => { updateEpisodeDetails(e.target.value); updateEpisodeDropdown(document.getElementById('seasonSelect').value, e.target.value); updatePlayer(); saveToWatched(state.current, document.getElementById('seasonSelect').value, e.target.value); };
             document.getElementById('prevEpBtn').onclick = () => navigateEpisode('prev');
             document.getElementById('nextEpBtn').onclick = () => navigateEpisode('next');
         }
+
         init();
     </script>
 </body>
