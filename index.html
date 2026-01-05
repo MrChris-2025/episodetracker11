@@ -49,15 +49,15 @@
             bottom: 0;
             left: 0;
             right: 0;
-            background: linear-gradient(to top, rgba(168, 85, 247, 0.95), rgba(168, 85, 247, 0.8));
-            padding: 8px 6px;
+            background: rgba(168, 85, 247, 0.95);
+            padding: 6px 4px;
             color: white;
-            font-size: 9px;
-            font-weight: 800;
+            font-size: 8.5px;
+            font-weight: 700;
             text-align: center;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-            backdrop-filter: blur(4px);
+            line-height: 1.2;
+            backdrop-filter: blur(8px);
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
             z-index: 10;
         }
 
@@ -83,7 +83,7 @@
         .history-card:hover .delete-btn { opacity: 1; }
         .delete-btn:hover { background: #dc2626; transform: scale(1.1); }
 
-        .ep-watched { color: #4ade80 !important; font-weight: 700; }
+        .ep-watched { color: #22c55e !important; font-weight: bold; }
 
         .player-wrapper {
             background: #000;
@@ -112,11 +112,11 @@
             background-size: 14px;
             padding-right: 36px !important;
         }
+        option { background-color: #1a1a1a; color: white; }
 
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: var(--bg-dark); }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; border: 2px solid var(--bg-dark); }
-        ::-webkit-scrollbar-thumb:hover { background: #444; }
 
         .hero-gradient {
             background: linear-gradient(to bottom, rgba(168, 85, 247, 0.15) 0%, rgba(5, 5, 5, 0) 100%);
@@ -226,7 +226,7 @@
         <section id="historySection" class="hidden mb-16">
             <div class="flex items-center gap-3 mb-8">
                 <div class="w-1 h-6 bg-purple-500 rounded-full"></div>
-                <h3 class="text-sm font-black text-white uppercase tracking-[0.25em]">Recent Activity</h3>
+                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-[0.2em]">Recent Activity</h3>
             </div>
             <div id="historyGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
         </section>
@@ -235,7 +235,8 @@
         <section>
             <div class="flex justify-between items-end mb-10">
                 <div>
-
+                    <h3 id="galleryTitle" class="text-3xl font-black text-white tracking-tighter mb-1 uppercase">Popular Content</h3>
+                    <p class="text-sm text-gray-500 font-medium">Trending globally now</p>
                 </div>
             </div>
             
@@ -246,8 +247,8 @@
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
                 </button>
                 <div class="flex flex-col items-center">
-                    <span id="pageTxt" class="text-[10px] font-black text-purple-500 uppercase tracking-[0.4em] mb-1">Navigation</span>
-                    <span class="text-lg font-bold text-white tracking-widest">PAGE <span id="pageNum">1</span></span>
+                    <span class="text-[10px] font-black text-purple-500 uppercase tracking-[0.4em] mb-1">Navigation</span>
+                    <span id="pageTxt" class="text-lg font-bold text-white tracking-widest uppercase">Page 1</span>
                 </div>
                 <button id="nextBtn" class="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center text-gray-400 hover:bg-purple-600 hover:text-white transition-all border border-white/10 hover:border-purple-400 shadow-xl">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
@@ -264,12 +265,15 @@
         };
 
         const availableSources = [
-            { id: 'videasy', name: 'VidEasy (Fast)', urls: { movie: 'https://player.videasy.net/movie/{id}?color=8834ec', tv: 'https://player.videasy.net/tv/{id}/{season}/{episode}?nextEpisode=true&color=8834ec' } },
-            { id: 'vidsrcsu', name: 'VidSrc.su', urls: { movie: 'https://vidsrc.su/embed/movie/{id}', tv: 'https://vidsrc.su/embed/tv/{id}/{season}/{episode}' } },
-            { id: 'vidsrcvip', name: 'VidSrc.vip', urls: { movie: 'https://vidsrc.vip/embed/movie/{id}', tv: 'https://vidsrc.vip/embed/tv/{id}/{season}/{episode}' } },
+            { id: 'videasy', name: 'VidEasy', urls: { movie: 'https://player.videasy.net/movie/{id}?color=8834ec', tv: 'https://player.videasy.net/tv/{id}/{season}/{episode}?nextEpisode=true&color=8834ec' } },
+            { id: 'vidsrcsu', name: 'vidsrc.su', urls: { movie: 'https://vidsrc.su/embed/movie/{id}', tv: 'https://vidsrc.su/embed/tv/{id}/{season}/{episode}' } },
+            { id: 'vidsrcvip', name: 'vidsrc.vip', urls: { movie: 'https://vidsrc.vip/embed/movie/{id}', tv: 'https://vidsrc.vip/embed/tv/{id}/{season}/{episode}' } },
             { id: 'vidsrccc', name: "VidSrcCC", urls: { movie: "https://vidsrc.cc/v2/embed/movie/{id}?autoPlay=false", tv: "https://vidsrc.cc/v2/embed/tv/{id}/{season}/{episode}?nextEpisode=true&autoPlay=false" } },
-            { id: 'flicky', name: 'Flicky.host', urls: { movie: 'https://flicky.host/embed/movie/?id={id}', tv: 'https://flicky.host/embed/tv/?id={id}&season={season}&episode={episode}' } },
+            { id: 'flicky', name: 'Flicky', urls: { movie: 'https://flicky.host/embed/movie/?id={id}', tv: 'https://flicky.host/embed/tv/?id={id}&season={season}&episode={episode}' } },
+            { id: 'wplayme', name: 'Wplay.me', urls: { movie: 'https://embed.wplay.me/embed/movie/{id}', tv: 'https://embed.wplay.me/embed/tv/{id}/{season}/{episode}' } },
             { id: 'rive', name: 'RiveStream', urls: { movie: 'https://rivestream.org/embed?type=movie&id={id}', tv: 'https://rivestream.org/embed?type=tv&id={id}&season={season}&episode={episode}' } },
+            { id: 'vidpop', name: 'Vidpop', urls: { movie: 'https://www.vidpop.xyz/embed/?id={id}', tv: 'https://www.vidpop.xyz/embed/?id={id}&season={season}&episode={episode}' } },
+            { id: 'vidjoy', name: 'VidJoy', urls: { movie: 'https://vidjoy.pro/embed/movie/{id}', tv: 'https://vidjoy.pro/embed/tv/{id}/{season}/{episode}' } },
             { id: 'pstream', name: 'P-Stream', urls: { movie: 'https://iframe.pstream.org/embed/tmdb-movie-{id}', tv: 'https://iframe.pstream.org/embed/tmdb-tv-{id}/{season}/{episode}' } }
         ];
 
@@ -291,7 +295,7 @@
         function formatDate(date) {
             if (!date) return "--/--/----";
             const d = new Date(date);
-            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
         }
 
         async function fetchHistory() {
@@ -367,14 +371,14 @@
                     <div onclick="deleteHistoryItem('${data.tmdbId}', event)" class="delete-btn">
                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg>
                     </div>
-                    <div class="w-16 h-20 flex-shrink-0 overflow-hidden rounded-xl shadow-lg">
+                    <div class="w-14 h-20 flex-shrink-0 overflow-hidden rounded-xl shadow-lg">
                         <img src="https://image.tmdb.org/t/p/w200${data.poster}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
                     </div>
                     <div class="overflow-hidden">
                         <h4 class="text-sm font-bold truncate text-white mb-1 tracking-tight">${data.title}</h4>
-                        <div class="flex flex-col gap-1">
-                             <span class="text-[10px] text-purple-400 font-black uppercase tracking-widest">${data.type === 'tv' ? `S${data.season} E${data.episode}` : 'Movie'}</span>
-                             <span class="text-[9px] text-gray-500 font-bold uppercase tracking-wider">${formatDate(data.watchedDate)}</span>
+                        <div class="flex flex-col gap-0.5">
+                             <span class="text-[10px] text-purple-400 font-extrabold uppercase tracking-wider">${data.type === 'tv' ? `S${data.season} E${data.episode}` : 'Movie'}</span>
+                             <span class="text-[9px] text-gray-500 font-semibold uppercase tracking-wider">Watched: ${formatDate(data.watchedDate)}</span>
                         </div>
                     </div>
                 </div>
@@ -387,7 +391,7 @@
                 : `https://api.themoviedb.org/3/${state.type}/popular?api_key=${CONFIG.TMDB_KEY}&page=${state.page}`;
             const res = await fetch(url); const data = await res.json();
             galleryData = data.results; renderGallery();
-            document.getElementById('pageNum').innerText = data.page;
+            document.getElementById('pageTxt').innerText = `Page ${data.page}`;
             document.getElementById('prevBtn').disabled = data.page <= 1;
         }
 
@@ -397,7 +401,7 @@
                 const historyObj = state.history[item.id.toString()] || {};
                 const episodes = Object.values(historyObj);
                 const watchData = episodes.sort((a,b) => b.watchedDate - a.watchedDate)[0];
-                let bannerHtml = watchData ? `<div class="watched-banner">${watchData.type === 'tv' ? `S${watchData.season} E${watchData.episode}` : 'Watched'} • ${formatDate(watchData.watchedDate)}</div>` : '';
+                let bannerHtml = watchData ? `<div class="watched-banner">${watchData.type === 'tv' ? `S${watchData.season} E${watchData.episode}` : 'Movie'} Last Watched: ${formatDate(watchData.watchedDate)}</div>` : '';
                 return `
                 <div class="group cursor-pointer" onclick="loadContent(${item.id}, '${state.type}', ${watchData?.season || 1}, ${watchData?.episode || 1})">
                     <div class="premium-card aspect-[2/3] rounded-2xl overflow-hidden mb-4 relative shadow-2xl">
@@ -429,7 +433,7 @@
             } else {
                 document.getElementById('tvSelectors').classList.add('hidden');
                 document.getElementById('episodeInfo').classList.add('hidden');
-                document.getElementById('playerSub').innerText = "Feature Film";
+                document.getElementById('playerSub').innerText = "Movie Stream";
                 updatePlayer(); saveToWatched(state.current);
             }
         }
@@ -460,7 +464,7 @@
         function updateEpisodeDetails(eNum) {
             const episode = state.currentEpisodes.find(ep => ep.episode_number == eNum);
             if (!episode) return;
-            document.getElementById('playerSub').innerText = `S${episode.season_number} • E${eNum}`;
+            document.getElementById('playerSub').innerText = `Season ${episode.season_number} • Episode ${eNum}`;
             document.getElementById('epTitleDisplay').innerText = episode.name;
             document.getElementById('epOverview').innerText = episode.overview || "No description available for this episode.";
             const stillUrl = episode.still_path ? `https://image.tmdb.org/t/p/w500${episode.still_path}` : `https://image.tmdb.org/t/p/w500${state.current.backdrop_path}`;
@@ -508,7 +512,6 @@
             document.getElementById('showMoviesBtn').onclick = () => { 
                 state.type = 'movie'; state.page = 1; 
                 document.getElementById('showMoviesBtn').classList.add('bg-purple-600', 'text-white');
-                document.getElementById('showMoviesBtn').classList.remove('text-gray-400');
                 document.getElementById('showTvBtn').classList.remove('bg-purple-600', 'text-white');
                 document.getElementById('showTvBtn').classList.add('text-gray-400');
                 fetchGallery(); 
@@ -516,7 +519,6 @@
             document.getElementById('showTvBtn').onclick = () => { 
                 state.type = 'tv'; state.page = 1; 
                 document.getElementById('showTvBtn').classList.add('bg-purple-600', 'text-white');
-                document.getElementById('showTvBtn').classList.remove('text-gray-400');
                 document.getElementById('showMoviesBtn').classList.remove('bg-purple-600', 'text-white');
                 document.getElementById('showMoviesBtn').classList.add('text-gray-400');
                 fetchGallery(); 
