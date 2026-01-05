@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GreekSports TV</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Poppins', 'sans-serif'] },
+                    colors: {
+                        tv: {
+                            bg: '#0a0a0a',
+                            surface: '#1a1a1a',
+                            accent: '#ff3131',
+                            border: '#2a2a2a'
+                        }
+                    }
+                },
+            }
+        }
+    </script>
+
+    <style>
+        body { 
+            background-color: #0a0a0a; 
+            color: #ffffff; 
+            font-family: 'Poppins', sans-serif; 
+            overflow: hidden; /* Lock scroll for TV experience */
+        }
+        
+        .tv-card {
+            background: #161616;
+            border: 2px solid transparent;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .tv-card:hover, .tv-card:focus {
+            border-color: #ff3131;
+            transform: scale(1.02);
+            background: #1f1f1f;
+            outline: none;
+        }
+
+        /* Custom Scrollbar */
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+
+        .glass-header {
+            background: rgba(15, 15, 15, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .aspect-video { aspect-ratio: 16 / 9; }
+
+        .channel-select {
+            background: #222;
+            border: 1px solid #333;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+        }
+
+        @media (max-width: 767px) {
+            body { overflow-y: auto; }
+            .md-h-fixed { height: auto !important; }
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen">
+
+    <header class="glass-header flex items-center justify-between px-10 h-24 sticky top-0 z-[2100]">
+        <div class="flex items-center gap-6">
+            <div class="flex items-center gap-3">
+                <i class="fab fa-youtube text-tv-accent text-5xl"></i>
+                <span class="text-3xl font-black tracking-tighter uppercase italic">GreekSports</span>
+            </div>
+            <nav class="hidden md:flex ml-10 gap-8">
+                <button onclick="switchTab('sports')" id="tab-sports" class="text-xl font-bold border-b-4 border-tv-accent pb-1">SPORTS</button>
+                <button onclick="switchTab('channels')" id="tab-channels" class="text-xl font-bold text-zinc-500 hover:text-white transition">CHANNELS</button>
+            </nav>
+        </div>
+
+        <div class="flex items-center gap-8">
+            <div class="relative hidden lg:block">
+                <input type="text" id="searchInput" oninput="renderUI()" placeholder="Search matches..." 
+                    class="bg-zinc-900 border border-zinc-800 rounded-full py-3 px-8 w-80 focus:outline-none focus:ring-2 focus:ring-tv-accent text-lg">
+            </div>
+            <div class="text-right border-l border-zinc-800 pl-8">
+                <div id="clockTime" class="text-3xl font-bold">--:--</div>
+                <div id="clockDate" class="text-sm text-zinc-500 font-medium uppercase tracking-widest">---, -- ---</div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex flex-1 overflow-hidden flex-col md:flex-row">
+        
+        <section class="flex-[1.8] flex flex-col p-6 overflow-y-auto custom-scroll">
+            <div class="max-w-full mx-auto w-full">
+                <div class="w-full aspect-video bg-black rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative border border-zinc-800">
+                    <iframe id="mainPlayer" class="w-full h-full" src="" frameborder="0" sandbox="allow-same-origin allow-scripts" allowfullscreen allow="autoplay; encrypted-media"></iframe>
+                    <div id="playerPlaceholder" class="absolute inset-0 flex flex-col items-center justify-center bg-zinc-950">
+                        <div class="w-24 h-24 rounded-full bg-zinc-900 flex items-center justify-center mb-6">
+                            <i class="fas fa-play text-4xl text-tv-accent animate-pulse"></i>
+                        </div>
+                        <h2 class="text-2xl font-bold text-white">Ready to Stream</h2>
+                        <p class="text-zinc-500 mt-2">Select an event from the sidebar to begin</p>
+                    </div>
+                </div>
+                
+                <div class="mt-8 flex items-start justify-between">
+                    <div>
+                        <h1 id="currentTitle" class="text-4xl font-black tracking-tight mb-2">Live Content Hub</h1>
+                        <div class="flex items-center gap-4">
+                            <div id="channelBrand" class="w-12 h-12 rounded-xl bg-zinc-800 p-2 flex items-center justify-center">
+                                <i class="fas fa-tv text-zinc-600"></i>
+                            </div>
+                            <h3 id="currentSub" class="text-xl font-bold text-tv-accent"></h3>
+                        </div>
+                    </div>
+                    <div class="flex gap-4">
+                        <button class="w-14 h-14 rounded-full bg-zinc-900 flex items-center justify-center hover:bg-zinc-800 transition"><i class="fas fa-share-alt"></i></button>
+                        <button class="w-14 h-14 rounded-full bg-zinc-900 flex items-center justify-center hover:bg-zinc-800 transition"><i class="fas fa-heart"></i></button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <aside class="flex-1 border-l border-zinc-900 bg-[#0c0c0c] flex flex-col">
+            <div class="p-6 space-y-4">
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="text-xl font-black uppercase tracking-widest text-zinc-500">Up Next</h2>
+                    <div class="flex gap-2">
+                         <select id="categoryFilter" onchange="renderUI()" class="bg-zinc-900 text-xs font-bold py-2 px-4 rounded-lg border border-zinc-800 focus:ring-1 focus:ring-tv-accent outline-none">
+                            <option value="all">ALL SPORTS</option>
+                        </select>
+                        <select id="regionFilter" style="display:none;" onchange="renderUI()" class="bg-zinc-900 text-xs font-bold py-2 px-4 rounded-lg border border-zinc-800 focus:ring-1 focus:ring-tv-accent outline-none">
+                        </select>
+                    </div>
+                </div>
+                
+                <div id="sidebarContent" class="space-y-4 overflow-y-auto h-[calc(100vh-250px)] pr-2 custom-scroll">
+                    </div>
+            </div>
+        </aside>
+    </main>
+
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-black border-t border-zinc-800 h-20 flex items-center justify-around z-[2300]">
+        <button onclick="switchTab('sports')" id="m-tab-sports" class="flex flex-col items-center gap-1 text-tv-accent">
+            <i class="fas fa-trophy text-2xl"></i>
+            <span class="text-[10px] font-bold uppercase">Sports</span>
+        </button>
+        <button onclick="switchTab('channels')" id="m-tab-channels" class="flex flex-col items-center gap-1 text-zinc-500">
+            <i class="fas fa-tv text-2xl"></i>
+            <span class="text-[10px] font-bold uppercase">Channels</span>
+        </button>
+    </nav>
+
+    <script>
+        const SPORTS_API = "https://api.cdn-live.tv/api/v1/events/sports/?user=cdnlivetv&plan=free";
+        const CHANNELS_API = "https://api.cdn-live.tv/api/v1/channels/?user=cdnlivetv&plan=free";
+
+        const countryNames = {
+            "us": "United States", "gb": "United Kingdom", "gr": "Greece", "cy": "Cyprus", "es": "Spain",
+            "it": "Italy", "fr": "France", "de": "Germany", "pt": "Portugal", "br": "Brazil", "mx": "Mexico"
+        };
+
+        let sportsList = [];
+        let channelsList = [];
+        let currentTab = 'sports';
+        const userLocale = navigator.language || 'en-US';
+
+        window.onload = async () => {
+            updateClock();
+            setInterval(updateClock, 1000);
+
+            try {
+                const [sportsRes, channelsRes] = await Promise.all([
+                    fetch(SPORTS_API),
+                    fetch(CHANNELS_API)
+                ]);
+                
+                const sportsData = await sportsRes.json();
+                const channelsData = await channelsRes.json();
+                
+                processSports(sportsData["cdn-live-tv"] || {});
+                channelsList = channelsData.channels || [];
+                
+                populateFilters();
+                renderUI();
+            } catch (err) { console.error("Data Fetch Error", err); }
+        };
+
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clockTime').textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+            document.getElementById('clockDate').textContent = now.toLocaleDateString([], { weekday: 'short', day: '2-digit', month: 'short' });
+        }
+
+        function processSports(raw) {
+            const all = [];
+            const categories = new Set();
+            Object.keys(raw).forEach(cat => {
+                if (!Array.isArray(raw[cat])) return;
+                categories.add(cat);
+                raw[cat].forEach(game => {
+                    const [h, m] = (game.time || "00:00").split(':').map(Number);
+                    const d = new Date();
+                    const startTs = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), h, m);
+                    all.push({
+                        ...game,
+                        id: Math.random().toString(36).substring(7),
+                        category: cat,
+                        startTimeTs: startTs,
+                        localTime: new Date(startTs).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+                    });
+                });
+            });
+            sportsList = all;
+            const catSelect = document.getElementById('categoryFilter');
+            [...categories].sort().forEach(c => catSelect.add(new Option(c.toUpperCase(), c)));
+        }
+
+        function populateFilters() {
+            const regSelect = document.getElementById('regionFilter');
+            const uniqueRegions = [...new Set(channelsList.map(ch => ch.code))].filter(Boolean).sort();
+            regSelect.add(new Option("ALL COUNTRIES", "all"));
+            uniqueRegions.forEach(r => {
+                const name = countryNames[r.toLowerCase()] || r.toUpperCase();
+                regSelect.add(new Option(name.toUpperCase(), r));
+            });
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            const isS = tab === 'sports';
+            document.getElementById('tab-sports').className = isS ? 'text-xl font-bold border-b-4 border-tv-accent pb-1' : 'text-xl font-bold text-zinc-500 hover:text-white transition';
+            document.getElementById('tab-channels').className = !isS ? 'text-xl font-bold border-b-4 border-tv-accent pb-1' : 'text-xl font-bold text-zinc-500 hover:text-white transition';
+            document.getElementById('categoryFilter').style.display = isS ? 'block' : 'none';
+            document.getElementById('regionFilter').style.display = isS ? 'none' : 'block';
+            renderUI();
+        }
+
+        function renderUI() {
+            const container = document.getElementById('sidebarContent');
+            const searchVal = document.getElementById('searchInput').value.toLowerCase();
+            let html = '';
+
+            if (currentTab === 'sports') {
+                const cat = document.getElementById('categoryFilter').value;
+                const filtered = sportsList.filter(g => (cat === 'all' || g.category === cat) && (!searchVal || g.homeTeam.toLowerCase().includes(searchVal) || g.awayTeam.toLowerCase().includes(searchVal)));
+
+                filtered.forEach(g => {
+                    html += `
+                        <div class="tv-card rounded-2xl p-5 cursor-pointer">
+                            <div class="flex justify-between items-center mb-4">
+                                <span class="text-[10px] font-black text-tv-accent uppercase tracking-widest bg-tv-accent/10 px-2 py-1 rounded">${g.category}</span>
+                                <span class="text-xs font-bold text-zinc-400">${g.localTime}</span>
+                            </div>
+                            <div class="flex items-center justify-between mb-6">
+                                <div class="flex flex-col items-center flex-1">
+                                    <img src="${g.homeTeamIMG}" class="w-12 h-12 rounded-full mb-2 bg-zinc-800 p-1">
+                                    <span class="text-xs font-bold text-center h-8 overflow-hidden">${g.homeTeam}</span>
+                                </div>
+                                <span class="text-zinc-700 font-black px-4">VS</span>
+                                <div class="flex flex-col items-center flex-1">
+                                    <img src="${g.awayTeamIMG}" class="w-12 h-12 rounded-full mb-2 bg-zinc-800 p-1">
+                                    <span class="text-xs font-bold text-center h-8 overflow-hidden">${g.awayTeam}</span>
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <select id="sel-${g.id}" class="channel-select flex-1 text-xs font-bold p-3 rounded-xl focus:outline-none">
+                                    <option value="">CHOOSE SOURCE</option>
+                                    ${(g.channels || []).map(ch => `<option value="${ch.url}" data-name="${ch.channel_name}" data-img="${ch.image}">${ch.channel_name}</option>`).join('')}
+                                </select>
+                                <button onclick="handlePlayClick('sel-${g.id}', '${g.homeTeam} vs ${g.awayTeam}')" class="bg-tv-accent hover:bg-red-700 px-6 rounded-xl text-xs font-bold uppercase transition-all">Watch</button>
+                            </div>
+                        </div>`;
+                });
+            } else {
+                const reg = document.getElementById('regionFilter').value;
+                const filtered = channelsList.filter(ch => (reg === 'all' || ch.code === reg) && (!searchVal || ch.name.toLowerCase().includes(searchVal)));
+                
+                filtered.forEach(ch => {
+                    html += `
+                        <div onclick="playStream('${ch.url}', '${ch.name}', 'Live Stream', '${ch.image}')" class="tv-card flex items-center gap-5 p-4 rounded-2xl">
+                            <div class="w-24 h-14 bg-zinc-900 rounded-xl flex items-center justify-center p-2">
+                                <img src="${ch.image}" class="max-w-full max-h-full object-contain">
+                            </div>
+                            <div>
+                                <h4 class="text-lg font-bold">${ch.name}</h4>
+                                <span class="text-xs text-zinc-500 font-bold uppercase tracking-tighter">${countryNames[ch.code.toLowerCase()] || ch.code} • ${ch.status}</span>
+                            </div>
+                        </div>`;
+                });
+            }
+            container.innerHTML = html || '<div class="text-center py-20 text-zinc-600">No content found</div>';
+        }
+
+        function handlePlayClick(selectId, title) {
+            const sel = document.getElementById(selectId);
+            if (!sel.value) return;
+            const opt = sel.options[sel.selectedIndex];
+            playStream(sel.value, title, opt.dataset.name, opt.dataset.img);
+        }
+
+        function playStream(url, title, sub, icon) {
+            const iframe = document.getElementById('mainPlayer');
+            const placeholder = document.getElementById('playerPlaceholder');
+            placeholder.style.display = 'flex';
+            placeholder.innerHTML = `<i class="fas fa-circle-notch fa-spin text-4xl text-tv-accent"></i>`;
+            iframe.src = url;
+            document.getElementById('currentTitle').textContent = title;
+            document.getElementById('currentSub').textContent = sub;
+            document.getElementById('channelBrand').innerHTML = `<img src="${icon}" class="w-full h-full object-contain">`;
+            iframe.onload = () => { placeholder.style.display = 'none'; };
+        }
+    </script>
+</body>
+</html>
