@@ -3,264 +3,305 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Basement Time | Premium</title>
+    <title>Basement Time | Modern</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
                         'netflix-red': '#E50914',
-                        'netflix-dark': '#080808',
-                        'netflix-medium': '#121212',
-                        'netflix-light': '#1e1e1e',
-                        'glass-border': 'rgba(255, 255, 255, 0.1)'
-                    },
-                    fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] }
+                        'netflix-dark': '#0f0f0f',
+                        'netflix-medium': '#1c1c1c',
+                        'netflix-light': '#2c2c2c',
+                    }
                 }
             }
         }
     </script>
     <script type="module">
-        import { createIcons, MonitorPlay, Film, Tv, ChevronLeft, ChevronRight, Search, Loader, Star, Maximize2, Minimize2 } from 'https://unpkg.com/lucide@latest';
-        window.lucideIcons = { MonitorPlay, Film, Tv, ChevronLeft, ChevronRight, Search, Loader, Star, Maximize2, Minimize2 };
-        window.refreshIcons = () => createIcons({ icons: window.lucideIcons });
+        import { createIcons, MonitorPlay, Film, Tv, ChevronLeft, ChevronRight, Search, Loader, X } from 'https://unpkg.com/lucide@latest';
+        createIcons({ icons: { MonitorPlay, Film, Tv, ChevronLeft, ChevronRight, Search, Loader, X } });
+        window.lucideIcons = { MonitorPlay, Film, Tv, Loader };
     </script>
     <style>
-        body { background-color: #080808; color: #f4f4f5; overflow: hidden; height: 100vh; }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #E50914; }
-
+        body { font-family: 'Inter', sans-serif; background-color: #0f0f0f; color: #e4e4e7; overflow: hidden; }
         #main-content-area { height: calc(100vh - 4rem); display: flex; }
-        
-        /* FIXED SCROLLING LOGIC */
-        #content-list-container {
-            flex: 1;
-            overflow-y: auto;
-            padding-right: 8px;
-        }
-
-        .glass-card {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            transition: all 0.2s ease;
-        }
-        .glass-card:hover { border-color: #E50914; background: rgba(255, 255, 255, 0.06); }
-        .glass-card.active { border-color: #E50914; background: rgba(229, 9, 20, 0.05); box-shadow: 0 0 15px rgba(229, 9, 20, 0.1); }
-
-        .theater-active #left-panel { width: 0; min-width: 0; padding: 0; border: 0; opacity: 0; pointer-events: none; }
-        .theater-active #right-panel { padding: 0; }
-        .theater-active #player-area-wrapper { max-width: 100%; height: 100%; border-radius: 0; }
-        .theater-active iframe { height: 100% !important; border-radius: 0; }
+        #content-list-container { overflow-y: auto; scroll-behavior: smooth; }
+        #content-list-container::-webkit-scrollbar { width: 4px; }
+        #content-list-container::-webkit-scrollbar-thumb { background-color: #E50914; border-radius: 10px; }
+        .player-iframe { height: 100%; width: 100%; transition: all 0.3s ease; }
+        .theater-active #left-panel { width: 0; min-width: 0; opacity: 0; pointer-events: none; }
+        .theater-active #right-panel { width: 100%; padding: 0; }
+        .content-item.active { border-color: #E50914; background: #2c2c2c; }
+        .glass-panel { background: rgba(28, 28, 28, 0.8); backdrop-filter: blur(10px); }
     </style>
 </head>
-<body class="antialiased">
+<body class="min-h-screen">
 
-    <header class="h-16 border-b border-glass-border bg-netflix-dark flex items-center px-6 justify-between z-50 relative">
-        <div class="flex items-center gap-4">
-            <span class="text-xl font-extrabold tracking-tighter text-netflix-red italic">BASEMENT<span class="text-white not-italic">TIME</span></span>
-            <div id="status-container" class="hidden md:flex items-center bg-zinc-900/50 px-3 py-1 rounded-full border border-glass-border ml-4">
-                <span id="player-status-text" class="text-xs font-medium truncate text-zinc-400 max-w-[300px]">Select content to stream</span>
-            </div>
+    <header class="h-16 bg-netflix-medium flex items-center px-6 border-b border-red-900/30 z-50">
+        <h1 class="text-xl font-black text-netflix-red tracking-tighter uppercase mr-4">Basement Time</h1>
+        <div class="hidden md:flex items-center text-xs font-bold text-gray-500 uppercase tracking-widest border-l border-gray-700 pl-4">
+            <span id="player-status-text">Ready to stream</span>
         </div>
-        <a href="https://mysite2026.netlify.app/basement.html" class="text-[10px] font-bold uppercase tracking-widest text-zinc-500 hover:text-netflix-red transition-colors">Sports Hub</a>
+        <div class="ml-auto flex items-center gap-4">
+            <a href="https://mysite2026.netlify.app/basement.html" class="text-xs hover:text-netflix-red transition">Sports</a>
+        </div>
     </header>
 
-    <main id="main-content-area">
-
-        <aside id="left-panel" class="w-[360px] bg-netflix-dark border-r border-glass-border flex flex-col shrink-0 transition-all duration-500 z-40">
-            
-            <div class="p-4 space-y-3">
-                <button id="theater-toggle-top" onclick="toggleTheaterMode()" class="w-full flex items-center justify-center gap-2 py-2.5 bg-zinc-900 hover:bg-zinc-800 border border-glass-border rounded-xl text-xs font-bold transition-all group">
-                    <i data-lucide="maximize-2" class="w-4 h-4 text-netflix-red group-hover:scale-110 transition-transform"></i>
-                    ENTER THEATER MODE
-                </button>
+    <div id="main-content-area">
+        <aside id="left-panel" class="w-80 md:w-96 bg-netflix-medium border-r border-white/5 flex flex-col transition-all duration-500">
+            <div class="p-4 space-y-4">
+                <div class="flex bg-black/40 p-1 rounded-lg border border-white/10">
+                    <button data-type="movie" class="type-btn flex-1 py-1.5 rounded-md text-sm font-bold transition bg-netflix-red text-white">Movies</button>
+                    <button data-type="tv" class="type-btn flex-1 py-1.5 rounded-md text-sm font-bold transition text-gray-400 hover:text-white">TV Shows</button>
+                </div>
 
                 <div class="grid grid-cols-2 gap-2">
-                    <select id="genre-filter" class="bg-zinc-900 border border-glass-border text-[11px] p-2 rounded-lg text-white focus:outline-none"></select>
-                    <select id="year-filter" class="bg-zinc-900 border border-glass-border text-[11px] p-2 rounded-lg text-white focus:outline-none">
-                        <option value="">Year</option>
+                    <select id="genre-filter" class="bg-netflix-dark border border-white/10 text-xs p-2 rounded focus:outline-none focus:border-netflix-red">
+                        <option value="">All Genres</option>
+                    </select>
+                    <select id="year-filter" class="bg-netflix-dark border border-white/10 text-xs p-2 rounded focus:outline-none focus:border-netflix-red">
+                        <option value="">All Years</option>
                     </select>
                 </div>
 
                 <div class="relative">
-                    <i data-lucide="search" class="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"></i>
-                    <input type="text" id="content-search" placeholder="Search library..." 
-                           class="w-full bg-zinc-900 border border-glass-border rounded-lg py-2 pl-9 pr-4 text-xs focus:ring-1 focus:ring-netflix-red outline-none">
+                    <input type="text" id="content-search" placeholder="Search titles..." class="w-full bg-netflix-dark border border-white/10 text-sm p-2 pl-8 rounded focus:outline-none focus:border-netflix-red">
+                    <i data-lucide="search" class="w-4 h-4 absolute left-2.5 top-2.5 text-gray-500"></i>
                 </div>
             </div>
 
-            <div id="content-list-container" class="px-4 pb-4">
-                <div id="content-list" class="space-y-2">
+            <div id="content-list-container" class="flex-grow p-4 pt-0 relative">
+                <div id="content-list" class="space-y-3 pb-20">
                     </div>
+            </div>
+
+            <div class="absolute bottom-4 left-4 right-4 flex justify-between pointer-events-none">
+                <button onclick="scrollList(-300)" class="pointer-events-auto bg-netflix-red/80 p-2 rounded-full shadow-lg hover:bg-netflix-red transition">
+                    <i data-lucide="chevron-left" class="w-4 h-4 rotate-90"></i>
+                </button>
+                <button onclick="scrollList(300)" class="pointer-events-auto bg-netflix-red/80 p-2 rounded-full shadow-lg hover:bg-netflix-red transition">
+                    <i data-lucide="chevron-right" class="w-4 h-4 rotate-90"></i>
+                </button>
             </div>
         </aside>
 
-        <section id="right-panel" class="flex-1 bg-[#050505] relative overflow-hidden flex flex-col transition-all duration-500">
-            
-            <div class="p-4 md:p-8 flex-1 flex flex-col justify-center items-center">
-                <div id="player-area-wrapper" class="relative w-full max-w-5xl bg-black aspect-video rounded-2xl overflow-hidden shadow-2xl border border-glass-border transition-all duration-500">
-                    
-                    <div id="player-message-overlay" class="absolute inset-0 z-20 bg-netflix-dark flex flex-col items-center justify-center text-center p-6">
-                        <i data-lucide="monitor-play" class="w-12 h-12 text-netflix-red mb-4 opacity-20"></i>
-                        <h2 class="text-lg font-bold">Pick a title to start</h2>
-                    </div>
+        <main id="right-panel" class="flex-grow bg-netflix-dark relative flex flex-col transition-all duration-500">
+            <div id="player-placeholder" class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-netflix-dark text-center p-6">
+                <div class="w-20 h-20 mb-4 rounded-full bg-netflix-medium flex items-center justify-center border border-white/5">
+                    <i data-lucide="monitor-play" class="w-10 h-10 text-netflix-red"></i>
+                </div>
+                <h2 class="text-2xl font-bold">Waiting for Selection</h2>
+                <p class="text-gray-500 mt-2">Choose a title from the library to begin streaming.</p>
+            </div>
 
-                    <iframe id="stream-player-1" class="w-full h-full relative z-10" src="" frameborder="0" allowfullscreen sandbox="allow-same-origin allow-scripts"></iframe>
+            <div id="stream-controls" class="absolute top-4 left-4 right-4 z-30 flex flex-wrap gap-3 opacity-0 pointer-events-none transition-opacity duration-300">
+                <div class="glass-panel p-2 rounded-lg border border-white/10 flex items-center gap-2">
+                    <select id="source-selector" class="bg-netflix-red text-white text-xs font-bold p-1.5 rounded cursor-pointer"></select>
+                    <button onclick="toggleTheater()" id="theater-btn" class="bg-white/10 hover:bg-white/20 text-white text-xs font-bold py-1.5 px-3 rounded transition">Theater Mode</button>
+                </div>
 
-                    <div id="stream-controls-1" class="hidden absolute bottom-4 left-4 right-4 z-30 p-3 bg-black/80 backdrop-blur-md rounded-xl border border-glass-border flex items-center justify-between animate-in fade-in slide-in-from-bottom-2">
-                        <div class="flex items-center gap-3">
-                            <select id="source-selector-1" class="bg-netflix-red text-white text-[10px] font-black py-1 px-2 rounded-md outline-none"></select>
-                            
-                            <div id="tv-controls" class="hidden items-center gap-1 border-l border-zinc-700 ml-2 pl-3">
-                                <button id="prev-episode-btn" class="p-1 hover:text-netflix-red transition-colors"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
-                                <select id="season-selector" class="bg-transparent text-[10px] font-bold w-12"></select>
-                                <select id="episode-selector" class="bg-transparent text-[10px] font-bold w-12"></select>
-                                <button id="next-episode-btn" class="p-1 hover:text-netflix-red transition-colors"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
-                            </div>
-                        </div>
-
-                        <button onclick="toggleTheaterMode()" class="text-[10px] font-bold px-3 py-1 rounded bg-white text-black hover:bg-zinc-200">
-                            EXIT THEATER
-                        </button>
-                    </div>
+                <div id="tv-controls" class="hidden glass-panel p-2 rounded-lg border border-white/10 flex items-center gap-2">
+                    <button id="prev-episode-btn" class="p-1.5 hover:text-netflix-red transition"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
+                    <select id="season-selector" class="bg-transparent text-xs font-bold outline-none"></select>
+                    <select id="episode-selector" class="bg-transparent text-xs font-bold outline-none"></select>
+                    <button id="next-episode-btn" class="p-1.5 hover:text-netflix-red transition"><i data-lucide="chevron-right" class="w-5 h-5"></i></button>
                 </div>
             </div>
-        </section>
-    </main>
+
+            <div class="flex-grow relative z-10">
+                <iframe id="main-player" class="player-iframe" frameborder="0" allowfullscreen sandbox="allow-same-origin allow-scripts"></iframe>
+            </div>
+        </main>
+    </div>
+
+    <div id="modal" class="fixed inset-0 bg-black/90 z-[100] hidden items-center justify-center p-4">
+        <div class="bg-netflix-medium border border-netflix-red/50 p-6 rounded-xl max-w-sm w-full">
+            <h3 id="modal-title" class="text-xl font-bold text-netflix-red"></h3>
+            <p id="modal-message" class="text-gray-400 my-4 text-sm"></p>
+            <button onclick="closeModal()" class="w-full bg-netflix-red py-2 rounded font-bold">Understood</button>
+        </div>
+    </div>
 
     <script>
-        // --- CORE LOGIC PRESERVED ---
         const TMDB_API_KEY = '1070730380f5fee0d87cf0382670b255';
         const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
-        const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
-        
+        const IMG_URL = 'https://image.tmdb.org/t/p/w500';
+
         const availableSources = [
             { id: 'wplayme', name: 'Wplay.me', urls: { movie: 'https://embed.wplay.me/embed/movie/{id}', tv: 'https://embed.wplay.me/embed/tv/{id}/{season}/{episode}' } },
             { id: 'primewire', name: 'Primewire', urls: { movie: 'https://www.primewire.tf/embed/movie?tmdb={id}', tv: 'https://www.primewire.tf/embed/tv?tmdb={id}&season={season}&episode={episode}&server=fileLions' } },
-            { id: 'rive', name: 'RiveStream', urls: { movie: 'https://rivestream.org/embed?type=movie&id={id}', tv: 'https://rivestream.org/embed?type=tv&id={id}&season={season}&episode={episode}' } },
+            { id: 'vidpop', name: 'Vidpop', urls: { movie: 'https://www.vidpop.xyz/embed/?id={id}', tv: 'https://www.vidpop.xyz/embed/?id={id}&season={season}&episode={episode}' } },
             { id: 'vidsrcpk', name: 'VidSrcPk', urls: { movie: 'https://vidsrc.win/movie/?id={id}', tv: 'https://vidsrc.win/tv.html?id={id}&season={season}&episode={episode}' } },
-            { id: 'vidnest', name: 'VidNest', urls: { movie: 'https://vidnest.fun/movie/{id}', tv: 'https://vidnest.fun/tv/{id}/{season}/{episode}' } }
+            { id: 'rive', name: 'RiveStream', urls: { movie: 'https://rivestream.org/embed?type=movie&id={id}', tv: 'https://rivestream.org/embed?type=tv&id={id}&season={season}&episode={episode}' } },
+            { id: 'vidnest', name: 'VidNest', urls: { movie: 'https://vidnest.fun/movie/{id}', tv: 'https://vidnest.fun/tv/{id}/{season}/{episode}' } },
+            { id: 'bludclart', name: 'Bludclart', urls: { movie: 'https://watch.bludclart.com/movie/{id}', tv: 'https://www.vidking.net/embed/tv/{id}/{season}/{episode}' } },
+            { id: 'hexa', name: 'Hexa', urls: { movie: 'https://hexa.watch/watch/movie/{id}', tv: 'https://hexa.watch/watch/tv/{id}/{season}/{episode}' } },
+            { id: 'vidzee', name: 'VidZee', urls: { movie: 'https://player.vidzee.wtf/embed/movie/{id}', tv: 'https://player.vidzee.wtf/embed/tv/{id}/{season}/{episode}' } },
+            { id: 'vidify', name: 'Vidify', urls: { movie: 'https://vidify.top/embed/movie/{id}', tv: 'https://vidify.top/embed/tv/{id}/{season}/{episode}' } },
+            { id: 'spenflix', name: 'SpenFlix', urls: { movie: 'https://spencerdevs.xyz/movie/{id}', tv: 'https://spencerdevs.xyz/tv/{id}/{season}/{episode}' } },
+            { id: 'pstream', name: 'P-Stream', urls: { movie: 'https://iframe.pstream.org/embed/tmdb-movie-{id}', tv: 'https://iframe.pstream.org/embed/tmdb-tv-{id}/{season}/{episode}' } }
         ];
 
-        let selectedContent = null;
-        let currentType = 'movie'; // Default
+        let state = {
+            type: 'movie',
+            selected: null,
+            tvDetails: null,
+            isTheater: false
+        };
 
-        const listEl = document.getElementById('content-list');
-        const player = document.getElementById('stream-player-1');
-        const overlay = document.getElementById('player-message-overlay');
-        const controls = document.getElementById('stream-controls-1');
-        const statusText = document.getElementById('player-status-text');
+        const listContainer = document.getElementById('content-list');
+        const player = document.getElementById('main-player');
+        const placeholder = document.getElementById('player-placeholder');
+        const controls = document.getElementById('stream-controls');
 
-        async function safeFetch(url) {
-            try { const res = await fetch(url); return await res.json(); } 
-            catch { return null; }
-        }
+        // Initial Load
+        window.onload = () => {
+            initSources();
+            initFilters();
+            fetchData();
+            
+            // Event Listeners
+            document.querySelectorAll('.type-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('bg-netflix-red', 'text-white'));
+                    e.target.classList.add('bg-netflix-red', 'text-white');
+                    state.type = e.target.dataset.type;
+                    fetchData();
+                };
+            });
 
-        async function fetchContent() {
-            listEl.innerHTML = '<div class="p-10 text-center"><i data-lucide="loader" class="animate-spin text-netflix-red mx-auto"></i></div>';
-            window.refreshIcons();
+            document.getElementById('content-search').oninput = debounce(fetchData, 500);
+            document.getElementById('genre-filter').onchange = fetchData;
+            document.getElementById('year-filter').onchange = fetchData;
+            document.getElementById('source-selector').onchange = updateStream;
+            document.getElementById('season-selector').onchange = handleSeasonChange;
+            document.getElementById('episode-selector').onchange = updateStream;
+            document.getElementById('next-episode-btn').onclick = () => navigateEpisode(1);
+            document.getElementById('prev-episode-btn').onclick = () => navigateEpisode(-1);
+        };
 
+        async function fetchData() {
             const query = document.getElementById('content-search').value;
             const genre = document.getElementById('genre-filter').value;
             const year = document.getElementById('year-filter').value;
             
-            // For simplicity in this layout, we auto-detect if user wants TV via search or default to Movies
-            let url = `${TMDB_BASE_URL}/${query ? 'search' : 'discover'}/movie?api_key=${TMDB_API_KEY}&language=en-US&page=1`;
-            
+            let url = `${TMDB_BASE_URL}/${query ? 'search' : 'discover'}/${state.type}?api_key=${TMDB_API_KEY}&language=en-US&page=1`;
             if (query) url += `&query=${encodeURIComponent(query)}`;
-            if (year) url += `&primary_release_year=${year}`;
-            if (!query) url += '&sort_by=popularity.desc';
+            if (genre) url += `&with_genres=${genre}`;
+            if (year) url += `&${state.type === 'movie' ? 'primary_release_year' : 'first_air_date_year'}=${year}`;
 
-            const data = await safeFetch(url);
-            listEl.innerHTML = '';
-            data?.results?.forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'glass-card p-2 rounded-xl cursor-pointer flex gap-3 items-center';
-                const poster = item.poster_path ? IMAGE_BASE_URL + item.poster_path : 'https://placehold.co/100x150?text=No+Poster';
-                
-                div.innerHTML = `
-                    <img src="${poster}" class="w-10 h-14 object-cover rounded shadow-md shrink-0">
-                    <div class="min-w-0">
-                        <h4 class="font-bold text-[11px] truncate">${item.title || item.name}</h4>
-                        <div class="flex items-center gap-2 mt-0.5">
-                            <span class="text-[9px] text-zinc-500">${(item.release_date || '').split('-')[0]}</span>
-                            <span class="text-[9px] text-yellow-500 font-bold">★ ${item.vote_average?.toFixed(1)}</span>
+            const res = await fetch(url);
+            const data = await res.json();
+            renderList(data.results);
+        }
+
+        function renderList(items) {
+            listContainer.innerHTML = items.map(item => `
+                <div onclick="selectItem(${JSON.stringify(item).replace(/"/g, '&quot;')})" 
+                     class="content-item flex gap-3 p-2 bg-black/20 rounded-lg border border-white/5 cursor-pointer hover:bg-white/5 transition group">
+                    <img src="${item.poster_path ? IMG_URL + item.poster_path : 'https://via.placeholder.com/100x150'}" class="w-16 h-24 rounded object-cover shadow-lg">
+                    <div class="flex-grow overflow-hidden">
+                        <h4 class="font-bold text-sm truncate group-hover:text-netflix-red transition">${item.title || item.name}</h4>
+                        <p class="text-[10px] text-gray-500 mt-1 line-clamp-2">${item.overview || 'No description available.'}</p>
+                        <div class="mt-2 flex items-center gap-2 text-[10px] font-bold text-gray-400">
+                            <span class="text-yellow-500">★ ${item.vote_average.toFixed(1)}</span>
+                            <span>${(item.release_date || item.first_air_date || '').split('-')[0]}</span>
                         </div>
                     </div>
-                `;
-                div.onclick = () => {
-                    document.querySelectorAll('.glass-card').forEach(c => c.classList.remove('active'));
-                    div.classList.add('active');
-                    selectedContent = item;
-                    loadStream();
-                };
-                listEl.appendChild(div);
-            });
-            window.refreshIcons();
+                </div>
+            `).join('');
+            lucide.createIcons();
         }
 
-        function loadStream() {
-            if (!selectedContent) return;
-            overlay.classList.add('hidden');
-            controls.classList.remove('hidden');
-            controls.classList.add('flex');
-            
-            const srcId = document.getElementById('source-selector-1').value;
-            const src = availableSources.find(s => s.id === srcId);
-            const url = src.urls.movie.replace('{id}', selectedContent.id);
-            
-            player.src = url;
-            statusText.textContent = `Streaming: ${selectedContent.title}`;
-        }
+        async function selectItem(item) {
+            state.selected = item;
+            placeholder.classList.add('hidden');
+            controls.classList.remove('opacity-0', 'pointer-events-none');
+            document.getElementById('player-status-text').innerText = item.title || item.name;
 
-        function toggleTheaterMode() {
-            document.body.classList.toggle('theater-active');
-            const btn = document.getElementById('theater-toggle-top');
-            if (document.body.classList.contains('theater-active')) {
-                btn.innerHTML = '<i data-lucide="minimize-2" class="w-4 h-4 text-netflix-red"></i> EXIT THEATER';
+            if (state.type === 'tv') {
+                const res = await fetch(`${TMDB_BASE_URL}/tv/${item.id}?api_key=${TMDB_API_KEY}`);
+                state.tvDetails = await res.json();
+                document.getElementById('tv-controls').classList.remove('hidden');
+                populateSeasons();
             } else {
-                btn.innerHTML = '<i data-lucide="maximize-2" class="w-4 h-4 text-netflix-red"></i> ENTER THEATER';
+                document.getElementById('tv-controls').classList.add('hidden');
+                updateStream();
             }
-            window.refreshIcons();
         }
 
-        window.onload = async () => {
-            const srcSel = document.getElementById('source-selector-1');
-            availableSources.forEach(s => {
-                const opt = document.createElement('option');
-                opt.value = s.id; opt.textContent = s.name;
-                srcSel.appendChild(opt);
-            });
-            srcSel.onchange = loadStream;
+        function updateStream() {
+            const source = availableSources.find(s => s.id === document.getElementById('source-selector').value);
+            const s = document.getElementById('season-selector').value || 1;
+            const e = document.getElementById('episode-selector').value || 1;
+            
+            let finalUrl = state.type === 'movie' 
+                ? source.urls.movie.replace('{id}', state.selected.id)
+                : source.urls.tv.replace('{id}', state.selected.id).replace('{season}', s).replace('{episode}', e);
+            
+            player.src = finalUrl;
+        }
 
-            const curYear = new Date().getFullYear();
-            for(let i=0; i<30; i++) {
-                const opt = document.createElement('option');
-                opt.value = curYear - i; opt.textContent = curYear - i;
-                document.getElementById('year-filter').appendChild(opt);
+        function populateSeasons() {
+            const sel = document.getElementById('season-selector');
+            sel.innerHTML = state.tvDetails.seasons
+                .filter(s => s.season_number > 0)
+                .map(s => `<option value="${s.season_number}">S${s.season_number}</option>`).join('');
+            handleSeasonChange();
+        }
+
+        function handleSeasonChange() {
+            const seasonNum = parseInt(document.getElementById('season-selector').value);
+            const season = state.tvDetails.seasons.find(s => s.season_number === seasonNum);
+            const epSel = document.getElementById('episode-selector');
+            epSel.innerHTML = Array.from({length: season.episode_count}, (_, i) => `<option value="${i+1}">E${i+1}</option>`).join('');
+            updateStream();
+        }
+
+        function navigateEpisode(dir) {
+            const epSel = document.getElementById('episode-selector');
+            const newIndex = epSel.selectedIndex + dir;
+            if (newIndex >= 0 && newIndex < epSel.options.length) {
+                epSel.selectedIndex = newIndex;
+                updateStream();
             }
+        }
 
-            const genres = await safeFetch(`${TMDB_BASE_URL}/genre/movie/list?api_key=${TMDB_API_KEY}`);
-            const gSel = document.getElementById('genre-filter');
-            gSel.innerHTML = '<option value="">All Genres</option>';
-            genres?.genres?.forEach(g => {
-                const opt = document.createElement('option');
-                opt.value = g.id; opt.textContent = g.name;
-                gSel.appendChild(opt);
-            });
+        function toggleTheater() {
+            state.isTheater = !state.isTheater;
+            document.body.classList.toggle('theater-active');
+            document.getElementById('theater-btn').innerText = state.isTheater ? 'Exit Theater' : 'Theater Mode';
+        }
 
-            document.getElementById('content-search').oninput = () => {
-                clearTimeout(window.searchTmt);
-                window.searchTmt = setTimeout(fetchContent, 500);
+        function scrollList(px) {
+            document.getElementById('content-list-container').scrollBy({ top: px, behavior: 'smooth' });
+        }
+
+        function initSources() {
+            document.getElementById('source-selector').innerHTML = availableSources.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+        }
+
+        async function initFilters() {
+            const yearSel = document.getElementById('year-filter');
+            for(let y = 2026; y >= 1950; y--) yearSel.innerHTML += `<option value="${y}">${y}</option>`;
+            
+            // Genres
+            const res = await fetch(`${TMDB_BASE_URL}/genre/movie/list?api_key=${TMDB_API_KEY}`);
+            const data = await res.json();
+            document.getElementById('genre-filter').innerHTML += data.genres.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
+        }
+
+        function debounce(func, timeout = 300) {
+            let timer;
+            return (...args) => {
+                clearTimeout(timer);
+                timer = setTimeout(() => { func.apply(this, args); }, timeout);
             };
-            gSel.onchange = fetchContent;
-            document.getElementById('year-filter').onchange = fetchContent;
+        }
 
-            fetchContent();
-        };
+        function closeModal() { document.getElementById('modal').classList.add('hidden'); }
     </script>
 </body>
 </html>
